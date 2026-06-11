@@ -16,13 +16,10 @@ Game::Game()
         std::cout << "[Blad] Brak czcionki!" << std::endl;
     }
 
-    // 1. ИНИЦИАЛИЗАЦИЯ МАГАЗИНА (Классы напарника)
-    // Motor(name, price, isUnlocked, speedBonus)
     mMotors.push_back(Motor("Stary Silnik", 0, true, 0.5f));
     mMotors.push_back(Motor("Silnik Diesla", 150, false, 1.0f));
     mMotors.push_back(Motor("Turbo Jugaad", 350, false, 2.0f));
 
-    // Tire(name, price, isUnlocked, aeroBonus)
     mTires.push_back(Tire("Lysa Opona", 0, true, 1.5f));
     mTires.push_back(Tire("Opona od Riksz", 150, false, 1.0f));
     mTires.push_back(Tire("Opona Sportowa", 350, false, 0.4f));
@@ -33,17 +30,15 @@ Game::Game()
     mTireVisual.setFillColor(sf::Color(80, 80, 80));
     mTireVisual.setOrigin(15.0f, 15.0f);
 
-    // 2. СПАВН ПЕРВЫХ ЦЕЛЕЙ
     for (int i = 0; i < 3; ++i) {
-        mTargets.push_back(nullptr); // Резервируем место
-        spawnTarget(i);              // Заполняем функцией
+        mTargets.push_back(nullptr);
+        spawnTarget(i);
     }
 }
 
 void Game::spawnTarget(int index) {
-    float randomY = 100.0f + static_cast<float>(rand() % 400); // 100 (высоко) до 500 (низко)
+    float randomY = 100.0f + static_cast<float>(rand() % 400);
 
-    // ЛОГИКА: Если высота от 100 до 300 (высоко) -> 50% шанс на Дрона
     if (randomY < 300.0f && (rand() % 2 == 0)) {
         mTargets[index] = std::make_unique<Drone>();
     }
@@ -93,9 +88,7 @@ void Game::processEvents() {
                 if (mCurrentState == GameState::PLAY) mCurrentState = GameState::PAUSE;
             }
 
-            // МАГАЗИН С ИСПОЛЬЗОВАНИЕМ КЛАССОВ НАПАРНИКА
             if (mCurrentState == GameState::SHOP) {
-                // Покупка/Выбор Двигателя (Кнопка E)
                 if (event.key.code == sf::Keyboard::E && mCurrentMotorIndex < mMotors.size() - 1) {
                     int nextIdx = mCurrentMotorIndex + 1;
                     if (!mMotors[nextIdx].getIsUnlocked() && mCoins >= mMotors[nextIdx].getPrice()) {
@@ -109,7 +102,6 @@ void Game::processEvents() {
                         applyUpgrades();
                     }
                 }
-                // Покупка/Выбор Покрышки (Кнопка T)
                 if (event.key.code == sf::Keyboard::T && mCurrentTireIndex < mTires.size() - 1) {
                     int nextIdx = mCurrentTireIndex + 1;
                     if (!mTires[nextIdx].getIsUnlocked() && mCoins >= mTires[nextIdx].getPrice()) {
@@ -146,7 +138,6 @@ void Game::processEvents() {
 void Game::update(sf::Time deltaTime) {
     if (mCurrentState != GameState::PLAY) return;
 
-    // 1. ДВИЖЕНИЕ ЦЕЛЕЙ
     for (size_t i = 0; i < mTargets.size(); ++i) {
         if (!mTargets[i]->isActive()) continue;
 
@@ -158,16 +149,16 @@ void Game::update(sf::Time deltaTime) {
         bool flewRight = (spd > 0.0f && pos.x > 1300.0f);
         bool flewLeft = (spd < 0.0f && pos.x < -100.0f);
 
-        // Если улетели за экран - пересоздаем
         if (flewRight || flewLeft) {
             spawnTarget(i);
         }
     }
 
     if (!mRocket.isFlying()) mQteManager.update(deltaTime);
+
+    // Передаем deltaTime, но внутри Rocket он теперь игнорируется (используется fixedDt)
     mRocket.update(deltaTime.asSeconds());
 
-    // 2. СТОЛКНОВЕНИЯ
     if (mRocket.isFlying()) {
         sf::Vector2f startPos(100.0f, 650.0f);
         mTireVisual.setPosition(startPos.x + mRocket.getDistance(), startPos.y - mRocket.getAltitude());
@@ -176,9 +167,8 @@ void Game::update(sf::Time deltaTime) {
         for (size_t i = 0; i < mTargets.size(); ++i) {
             if (mTargets[i]->isActive() && tireBox.intersects(mTargets[i]->getBounds())) {
                 mTargets[i]->setActive(false);
-                mCoins += mTargets[i]->getReward(); // Дрон дает 150, Птица 50
+                mCoins += mTargets[i]->getReward();
                 std::cout << "[Gra] Trafienie! + " << mTargets[i]->getReward() << " monet! Stan: " << mCoins << std::endl;
-                // Сразу спавним новую цель на замену сбитой
                 spawnTarget(i);
             }
         }
@@ -232,15 +222,22 @@ void Game::render() {
             target->draw(mWindow);
         }
 
-        if (mQteManager.isActive()) {
+        // ЛИНИЯ ТРАЕКТОРИИ (рисуется и до выстрела, и во время полета)
+        if (mQteManager.isActive() || mRocket.isFlying()) {
             sf::Vector2f startPos(100.0f, 650.0f);
-            auto points = mRocket.getTrajectoryPoints(mQteManager.getMultiplier(), startPos);
+
+            // Берем нужный уровень силы
+            float currentMult = mRocket.isFlying() ? mRocket.getLastQte() : mQteManager.getMultiplier();
+
+            auto points = mRocket.getTrajectoryPoints(currentMult, startPos);
             for (const auto& pos : points) {
                 sf::CircleShape dot(3.0f);
+                dot.setOrigin(3.0f, 3.0f); // Важно: центрируем точки!
                 dot.setPosition(pos);
                 mWindow.draw(dot);
             }
         }
+
         if (mRocket.isFlying()) mWindow.draw(mTireVisual);
     }
 

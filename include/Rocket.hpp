@@ -3,15 +3,15 @@
 #include <vector>
 #include <SFML/System/Vector2.hpp>
 
-// Переименовали, чтобы не было конфликта с Equipment.hpp напарника!
+// Переименовали, чтобы не конфликтовало с Equipment.hpp
 struct RocketEngine { float powerMult; };
 struct RocketTire { float dragMult; };
 
 class Rocket {
 public:
     Rocket() : mVelocityX(0.0f), mVelocityY(0.0f), mDistance(0.0f), mAltitude(0.0f),
-        mIsFlying(false), mGravity(9.81f) {
-        // НАЧАЛЬНЫЙ УРОВЕНЬ
+        mIsFlying(false), mGravity(9.81f), mLastQte(0.0f) {
+
         mEngine = { 0.5f };
         mTire = { 1.5f };
     }
@@ -22,7 +22,9 @@ public:
     }
 
     void launch(float qteMultiplier) {
-        float power = (800.0f + (2000.0f * qteMultiplier)) * mEngine.powerMult;
+        mLastQte = qteMultiplier; // Запоминаем силу для отрисовки идеальной линии!
+
+        float power = (500.0f + (1500.0f * qteMultiplier)) * mEngine.powerMult;
 
         mVelocityX = power * 0.85f;
         mVelocityY = power * 0.5f;
@@ -30,17 +32,22 @@ public:
         mDistance = 0.0f; mAltitude = 0.0f; mIsFlying = true;
     }
 
-    void update(float dt) {
+    // dt передаем, но игнорируем, используя жесткое время (fixedDt)
+    void update(float /* dt */) {
         if (!mIsFlying) return;
 
-        mVelocityX -= (mVelocityX * 0.5f * mTire.dragMult) * dt;
-        mVelocityY -= (mGravity * 100.0f) * dt;
+        // Фиксированный шаг времени (как 60 FPS), чтобы физика не плавала от лагов
+        float fixedDt = 1.0f / 60.0f;
 
-        mDistance += mVelocityX * dt;
-        mAltitude += mVelocityY * dt;
+        mVelocityX -= (mVelocityX * 0.5f * mTire.dragMult) * fixedDt;
+        mVelocityY -= (mGravity * 100.0f) * fixedDt;
+
+        mDistance += mVelocityX * fixedDt;
+        mAltitude += mVelocityY * fixedDt;
 
         if (mAltitude <= 0.0f) {
-            mAltitude = 0.0f; mIsFlying = false;
+            mAltitude = 0.0f;
+            mIsFlying = false;
         }
     }
 
@@ -51,13 +58,20 @@ public:
         float vy = power * 0.5f;
         float dist = 0.0f, alt = 0.0f, vY = vy, vX = vx;
 
-        for (int i = 0; i < 60; ++i) {
-            vX -= (vX * 0.5f * mTire.dragMult) * 0.03f;
-            vY -= (mGravity * 100.0f) * 0.03f;
-            dist += vX * 0.03f;
-            alt += vY * 0.03f;
+        // Идеально совпадает с fixedDt из функции update
+        float simDt = 1.0f / 60.0f;
+
+        for (int i = 0; i < 150; ++i) {
+            vX -= (vX * 0.5f * mTire.dragMult) * simDt;
+            vY -= (mGravity * 100.0f) * simDt;
+            dist += vX * simDt;
+            alt += vY * simDt;
+
             if (alt < 0.0f) break;
-            points.push_back(sf::Vector2f(startPos.x + dist, startPos.y - alt));
+
+            if (i % 3 == 0) {
+                points.push_back(sf::Vector2f(startPos.x + dist, startPos.y - alt));
+            }
         }
         return points;
     }
@@ -65,10 +79,12 @@ public:
     bool isFlying() const { return mIsFlying; }
     float getDistance() const { return mDistance; }
     float getAltitude() const { return mAltitude; }
+    float getLastQte() const { return mLastQte; } // Геттер для силы
 
 private:
-    RocketEngine mEngine; // Заменили тип
-    RocketTire mTire;     // Заменили тип
+    RocketEngine mEngine;
+    RocketTire mTire;
     float mVelocityX, mVelocityY, mDistance, mAltitude, mGravity;
     bool mIsFlying;
+    float mLastQte;
 };
