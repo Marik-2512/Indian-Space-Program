@@ -46,4 +46,7 @@ private:
     std::vector<Tire> mTires;
     int mCurrentMotorIndex;
     int mCurrentTireIndex;
+
+    sf::Texture mBackgroundTexture;
+    sf::Sprite mBackgroundSprite;
 };

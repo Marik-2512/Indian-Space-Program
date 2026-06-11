@@ -16,6 +16,19 @@ Game::Game()
         std::cout << "[Blad] Brak czcionki!" << std::endl;
     }
 
+    if (!mBackgroundTexture.loadFromFile("game_bg.png")) {
+        std::cout << "[Blad] Nie mozna zaladowac game_bg.png!" << std::endl;
+    }
+    else {
+        mBackgroundSprite.setTexture(mBackgroundTexture);
+
+        // Масштабируем картинку под разрешение окна 1280x720, 
+        // чтобы она идеально растянулась без черных полос:
+        float scaleX = 1280.0f / mBackgroundTexture.getSize().x;
+        float scaleY = 720.0f / mBackgroundTexture.getSize().y;
+        mBackgroundSprite.setScale(scaleX, scaleY);
+    }
+
     mMotors.push_back(Motor("Stary Silnik", 0, true, 0.5f));
     mMotors.push_back(Motor("Silnik Diesla", 150, false, 1.0f));
     mMotors.push_back(Motor("Turbo Jugaad", 350, false, 2.0f));
@@ -218,26 +231,29 @@ void Game::render() {
     }
 
     if (mCurrentState == GameState::PLAY) {
+        // 1. ПЕРВЫМ ДЕЛОМ РИСУЕМ НАШ КРУТОЙ ФОН
+        mWindow.draw(mBackgroundSprite);
+
+        // 2. ВТОРЫМ ДЕЛОМ РИСУЕМ ЦЕЛИ (они будут летать поверх заднего фона)
         for (const auto& target : mTargets) {
             target->draw(mWindow);
         }
 
-        // ЛИНИЯ ТРАЕКТОРИИ (рисуется и до выстрела, и во время полета)
+        // 3. РИСУЕМ ТРАЕКТОРИЮ
         if (mQteManager.isActive() || mRocket.isFlying()) {
             sf::Vector2f startPos(100.0f, 650.0f);
-
-            // Берем нужный уровень силы
             float currentMult = mRocket.isFlying() ? mRocket.getLastQte() : mQteManager.getMultiplier();
 
             auto points = mRocket.getTrajectoryPoints(currentMult, startPos);
             for (const auto& pos : points) {
                 sf::CircleShape dot(3.0f);
-                dot.setOrigin(3.0f, 3.0f); // Важно: центрируем точки!
+                dot.setOrigin(3.0f, 3.0f);
                 dot.setPosition(pos);
                 mWindow.draw(dot);
             }
         }
 
+        // 4. РИСУЕМ ЛЕТЯЩУЮ ПОКРЫШКУ поверх всего
         if (mRocket.isFlying()) mWindow.draw(mTireVisual);
     }
 
