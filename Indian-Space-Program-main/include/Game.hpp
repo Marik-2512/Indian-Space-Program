@@ -58,14 +58,36 @@ private:
     sf::Text mScoreText;
     sf::CircleShape mCoinIcon;
 
-    std::vector<Motor> mMotors;
-    std::vector<Tire> mTires;
-    int mCurrentMotorIndex;
-    int mCurrentTireIndex;
+    // ¬место mMotors и mTires делаем один вектор сетов:
+    std::vector<UpgradeSet> mUpgrades;
+
+    // ¬место двух индексов Ч один общий текущий уровень прокачки:
+    int mCurrentUpgradeLevel;
 
     sf::Texture mBackgroundTexture;
     sf::Sprite mBackgroundSprite;
 
     sf::Texture mLauncherTexture;
     sf::Sprite mLauncherSprite;
+    sf::Texture mShopBgTexture;
+    sf::Sprite  mShopBgSprite;
+
+    sf::Texture mBoardTexture;
+    sf::Sprite  mBoardSprite;
+
+    // ¬ременные текстуры/спрайты дл€ витрины магазина
+    sf::Texture mPreviewEngineTextures[3];
+    sf::Texture mPreviewTireTextures[3];
+    sf::Sprite  mPreviewEngineSprites[3];
+    sf::Sprite  mPreviewTireSprites[3];
+
+    // --- ѕЋјЎ » »Ќ“≈–‘≈…—ј ћј√ј«»Ќј ---
+    sf::Texture mNewCoinBgTexture;
+    sf::Sprite  mNewCoinBgSprite;
+
+    sf::Texture mPriceBgTexture;
+    sf::Sprite  mPriceBgSprites[3];
+
+    sf::Texture mBuyKeyTexture;
+    sf::Sprite  mBuyKeySprites[3];
 };
