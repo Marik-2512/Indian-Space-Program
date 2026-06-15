@@ -13,7 +13,7 @@ public:
         mIsActive = true;
         mMovingUp = true;
     }
-    
+
     // Остановка ползунка и возврат результата
     float stop() {
         mIsActive = false;
