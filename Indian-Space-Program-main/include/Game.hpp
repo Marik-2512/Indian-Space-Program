@@ -90,4 +90,12 @@ private:
 
     sf::Texture mBuyKeyTexture;
     sf::Sprite  mBuyKeySprites[3];
+    // Добавь это в приватную секцию (private:) класса Game в файле Game.hpp:
+    sf::Texture mMenuBgTexture;
+    sf::Sprite  mMenuBgSprite;
+    sf::Sprite  mWorkshopBtnSprite;
+    sf::Sprite  mStreetBtnSprite;
+    sf::Text    mMenuTitleText;
+    sf::Text    mWorkshopBtnText;
+    sf::Text    mStreetBtnText;
 };
