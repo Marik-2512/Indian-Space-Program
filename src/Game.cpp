@@ -19,7 +19,7 @@ Game::Game()
     loadProgress();
 
     if (!mFont.loadFromFile("VT323-Regular.ttf")) {
-        std::cout << "[Blad] Brak czcionki!" << std::endl;
+        std::cout << "[Error] Font missing!" << std::endl;
     }
 
     // --- НАСТРОЙКА ИНТЕРФЕЙСА СЧЕТА ---
@@ -39,7 +39,7 @@ Game::Game()
     mCoinIcon.setPosition(180.0f, 30.0f);
 
     if (!mBackgroundTexture.loadFromFile("game_bg.png")) {
-        std::cout << "[Blad] Nie mozna zaladowac game_bg.png!" << std::endl;
+        std::cout << "[Error] Could not load game_bg.png!" << std::endl;
     }
     else {
         mBackgroundSprite.setTexture(mBackgroundTexture);
@@ -50,7 +50,7 @@ Game::Game()
 
     // --- НАСТРОЙКА ПЕРСОНАЖА ---
     if (!mCharacterTexture.loadFromFile("character_sheet.png")) {
-        std::cout << "[Blad] Nie mozna zaladowac character_sheet.png!" << std::endl;
+        std::cout << "[Error] Could not load character_sheet.png!" << std::endl;
     }
     else {
         mCharacterSprite.setTexture(mCharacterTexture);
@@ -68,14 +68,14 @@ Game::Game()
         mCharacterSprite.setScale(0.45f, 0.45f);
     }
 
-    // --- НАСТРОЙКА НАБОРОВ ОБНОВЛЕНИЙ ---
-    mUpgrades.push_back(UpgradeSet("Zestaw: Garazny Chlam", 0, true, 0.5f, 1.5f));
-    mUpgrades.push_back(UpgradeSet("Zestaw: Diesel-Pak", 150, false, 1.0f, 1.0f));
-    mUpgrades.push_back(UpgradeSet("Zestaw: Ultimate-Craft", 350, false, 2.0f, 0.4f));
+    // --- ИСПРАВЛЕННЫЕ НАЗВАНИЯ НАБОРОВ (ДЛЯ СИНХРОНИЗАЦИИ С ТЕРМИНАЛОМ) ---
+    mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.5f, 1.5f));
+    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 150, false, 1.0f, 1.0f));
+    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 2.0f, 0.4f));
 
     // --- НАСТРОЙКА ГРАФИКИ МАГАЗИНА ---
     if (!mShopBgTexture.loadFromFile("fon_mag.png")) {
-        std::cout << "[Blad] Nie mozna zaladowac fon_mag.png!" << std::endl;
+        std::cout << "[Error] Could not load fon_mag.png!" << std::endl;
     }
     else {
         mShopBgSprite.setTexture(mShopBgTexture);
@@ -85,7 +85,7 @@ Game::Game()
     }
 
     if (!mBoardTexture.loadFromFile("tablica.png")) {
-        std::cout << "[Blad] Nie mozna zaladowac tablica.png!" << std::endl;
+        std::cout << "[Error] Could not load tablica.png!" << std::endl;
     }
     else {
         mBoardSprite.setTexture(mBoardTexture);
@@ -129,6 +129,34 @@ Game::Game()
         }
     }
 
+    // --- НАСТРОЙКА ГЛАВНОГО МЕНЮ ---
+    if (!mMenuBgTexture.loadFromFile("menubg.png")) {
+        std::cout << "[Error] Could not load menubg.png!" << std::endl;
+    }
+    else {
+        mMenuBgSprite.setTexture(mMenuBgTexture);
+        float sX = 1280.0f / mMenuBgTexture.getSize().x;
+        float sY = 720.0f / mMenuBgTexture.getSize().y;
+        mMenuBgSprite.setScale(sX, sY);
+    }
+
+    mMenuTitleText.setFont(mFont);
+    mMenuTitleText.setStyle(sf::Text::Bold);
+    mMenuTitleText.setFillColor(sf::Color(255, 215, 0));
+    mMenuTitleText.setOutlineColor(sf::Color::Black);
+    mMenuTitleText.setOutlineThickness(4.0f);
+    mMenuTitleText.setString("TIRE LAUNCH");
+
+    mWorkshopBtnSprite.setTexture(mBuyKeyTexture);
+    mWorkshopBtnText.setFont(mFont);
+    mWorkshopBtnText.setFillColor(sf::Color::White);
+    mWorkshopBtnText.setString("Workshop");
+
+    mStreetBtnSprite.setTexture(mBuyKeyTexture);
+    mStreetBtnText.setFont(mFont);
+    mStreetBtnText.setFillColor(sf::Color::White);
+    mStreetBtnText.setString("Street");
+
     applyUpgrades();
 
     for (int i = 0; i < 3; ++i) {
@@ -171,7 +199,7 @@ void Game::applyUpgrades() {
 
     std::string engineFile = "engine" + std::to_string(mCurrentUpgradeLevel + 1) + ".png";
     if (!mLauncherTexture.loadFromFile(engineFile)) {
-        std::cout << "[Blad] Nie mozna zaladowac " << engineFile << "!" << std::endl;
+        std::cout << "[Error] Could not load " << engineFile << "!" << std::endl;
     }
     else {
         mLauncherSprite.setTexture(mLauncherTexture, true);
@@ -193,7 +221,7 @@ void Game::applyUpgrades() {
 
     std::string tireFile = "tire" + std::to_string(mCurrentUpgradeLevel + 1) + ".png";
     if (!mTireTexture.loadFromFile(tireFile)) {
-        std::cout << "[Blad] Nie mozna zaladowac " << tireFile << "!" << std::endl;
+        std::cout << "[Error] Could not load " << tireFile << "!" << std::endl;
     }
     else {
         mTireVisual.setTexture(mTireTexture, true);
@@ -244,52 +272,81 @@ void Game::processEvents() {
             }
         }
 
-        // --- ОБРАБОТКА КЛИКОВ МЫШКОЙ В МАГАЗИНЕ ---
+        // --- ОБРАБОТКА КЛИКОВ МЫШКОЙ ---
         if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-            if (mCurrentState == GameState::SHOP) {
-                sf::Vector2i pixelPos = sf::Mouse::getPosition(mWindow);
-                
-                // КРИТИЧЕСКАЯ ИСПРАВЛЕННАЯ СТРОКА: Переводим пиксели монитора в координаты игры (1280x720)
-                sf::Vector2f mousePos = mWindow.mapPixelToCoords(pixelPos);
+            sf::Vector2i pixelPos = sf::Mouse::getPosition(mWindow);
+            sf::Vector2f mousePos = mWindow.mapPixelToCoords(pixelPos);
 
-                // ТВОИ ТОЧНЫЕ КООРДИНАТЫ КНОПКИ (ИЗ REBDER), ТЕПЕРЬ ОНИ СВЯЗАНЫ ДЛЯ КЛИКА РОДНОГО РЕЖИМА
+            // КЛИКИ В ГЛАВНОМ МЕНЮ
+            if (mCurrentState == GameState::MENU) {
+                float menuBtnScale = 1.1f;
+                float menuBtnCenterX = 530.0f;
+                float workshopBtnY = 300.0f;
+                float streetBtnY = 400.0f;
+
+                float btnW = mBuyKeyTexture.getSize().x * menuBtnScale;
+                float btnH = mBuyKeyTexture.getSize().y * menuBtnScale;
+
+                sf::FloatRect workshopBounds(
+                    menuBtnCenterX - btnW / 2.0f,
+                    workshopBtnY - btnH / 2.0f + 25.0f,
+                    btnW, btnH
+                );
+
+                sf::FloatRect streetBounds(
+                    menuBtnCenterX - btnW / 2.0f,
+                    streetBtnY - btnH / 2.0f + 25.0f,
+                    btnW, btnH
+                );
+
+                if (workshopBounds.contains(mousePos.x, mousePos.y)) {
+                    mCurrentState = GameState::SHOP;
+                    std::cout << "[Menu] Switching scene to: Workshop" << std::endl;
+                }
+                else if (streetBounds.contains(mousePos.x, mousePos.y)) {
+                    mCurrentState = GameState::PLAY;
+                    std::cout << "[Menu] Switching scene to: Street" << std::endl;
+                }
+            }
+
+            // КЛИКИ В МАГАЗИНЕ
+            else if (mCurrentState == GameState::SHOP) {
                 sf::Vector2f buttonPositions[3] = {
-                    sf::Vector2f(408.0f, 513.0f),  // Левая кнопка
-                    sf::Vector2f(640.0f, 513.0f),  // Центральная кнопка
-                    sf::Vector2f(872.0f, 513.0f)   // Правая кнопка
+                    sf::Vector2f(408.0f, 513.0f),
+                    sf::Vector2f(640.0f, 513.0f),
+                    sf::Vector2f(872.0f, 513.0f)
                 };
 
                 for (int i = 0; i < 3; ++i) {
-                    // Создаем хитбокс вокруг твоих кнопок buykey (с учетом оригинального масштаба)
+                    float w = 170.0f * 1.15f;
+                    float h = 50.0f * 1.15f;
                     sf::FloatRect btnBounds(
-                        buttonPositions[i].x - 85.0f, // Смещение влево от центра
-                        buttonPositions[i].y - 25.0f, // Смещение вверх от центра
-                        170.0f, 50.0f                 // Ширина и высота кликабельной зоны
+                        buttonPositions[i].x - w / 2.0f,
+                        buttonPositions[i].y - h / 2.0f,
+                        w, h
                     );
 
-                    // Проверяем попадание по пересчитанной координате мыши
                     if (btnBounds.contains(mousePos.x, mousePos.y)) {
-                        // Если сет заблокирован — покупаем его
                         if (!mUpgrades[i].getIsUnlocked()) {
                             if (mCoins >= mUpgrades[i].getPrice()) {
                                 mCoins -= mUpgrades[i].getPrice();
                                 mUpgrades[i].unlock();
-                                mCurrentUpgradeLevel = i; 
+                                mCurrentUpgradeLevel = i;
                                 applyUpgrades();
-                                std::cout << "[Shop] Kupiono zestaw: " << mUpgrades[i].getName() << std::endl;
-                            } else {
-                                std::cout << "[Shop] Za malo monet!" << std::endl;
+                                std::cout << "[Shop] Purchased set: " << mUpgrades[i].getName() << std::endl;
                             }
-                        } 
-                        // Если уже куплен — свободно переключаемся (Equip)
+                            else {
+                                std::cout << "[Shop] Not enough coins!" << std::endl;
+                            }
+                        }
                         else {
                             mCurrentUpgradeLevel = i;
                             applyUpgrades();
-                            std::cout << "[Shop] Wybrano zestaw level: " << i << std::endl;
+                            std::cout << "[Shop] Equipped set level: " << i << " (" << mUpgrades[i].getName() << ")" << std::endl;
                         }
 
                         saveProgress();
-                        break; 
+                        break;
                     }
                 }
             }
@@ -300,7 +357,7 @@ void Game::processEvents() {
 void Game::update(sf::Time deltaTime) {
     if (mCurrentState != GameState::PLAY) return;
 
-    mScoreText.setString("MONETY: " + std::to_string(mCoins));
+    mScoreText.setString("COINS: " + std::to_string(mCoins));
 
     if (mIsCelebrating) {
         if (mAnimationClock.getElapsedTime().asSeconds() > mFrameDuration) {
@@ -368,7 +425,7 @@ void Game::update(sf::Time deltaTime) {
 
                 if (mCoins < 0) mCoins = 0;
 
-                std::cout << "[Gra] Trafienie! + " << mTargets[i]->getReward() << " monet! Stan: " << mCoins << std::endl;
+                std::cout << "[Game] Hit! + " << mTargets[i]->getReward() << " coins! Balance: " << mCoins << std::endl;
 
                 if (mTargets[i]->getReward() > 0 && !mIsCelebrating && mCharacterCurrentFrame == 0) {
                     mIsCelebrating = true;
@@ -400,15 +457,62 @@ void Game::render() {
     }
     mWindow.clear(bgColor);
 
-    if (mCurrentState == GameState::SHOP) {
-        // 1. Рисуем задний фон мастерской (склад)
+    // --- РЕНДЕР ГЛАВНОГО МЕНЮ ---
+    if (mCurrentState == GameState::MENU) {
+        mWindow.draw(mMenuBgSprite);
+
+        // =========================================================================
+        // ТВОИ НАСТРОЙКИ КООРДИНАТ ГЛАВНОГО МЕНЮ
+        // =========================================================================
+        float titleX = 650.0f;
+        float titleY = 100.0f;
+        int   titleSize = 110;
+
+        float btnCenterX = 530.0f;
+        float workshopY = 300.0f;
+        float streetY = 400.0f;
+        float btnScale = 1.1f;
+
+        int   textBtnSize = 34;
+
+        float textOffsetX = 108.0f;
+        float textOffsetY = 25.0f;
+        // =========================================================================
+
+        // Заголовок
+        mMenuTitleText.setCharacterSize(titleSize);
+        mMenuTitleText.setOrigin(mMenuTitleText.getLocalBounds().width / 2.0f, mMenuTitleText.getLocalBounds().height / 2.0f);
+        mMenuTitleText.setPosition(titleX, titleY);
+        mWindow.draw(mMenuTitleText);
+
+        // Кнопка Workshop
+        mWorkshopBtnSprite.setPosition(btnCenterX, workshopY);
+        mWorkshopBtnSprite.setScale(btnScale, btnScale);
+        mWindow.draw(mWorkshopBtnSprite);
+
+        mWorkshopBtnText.setCharacterSize(textBtnSize);
+        mWorkshopBtnText.setOrigin(mWorkshopBtnText.getLocalBounds().width / 2.0f, mWorkshopBtnText.getLocalBounds().height / 2.0f);
+        mWorkshopBtnText.setPosition(btnCenterX + textOffsetX, workshopY + textOffsetY);
+        mWindow.draw(mWorkshopBtnText);
+
+        // Кнопка Street
+        mStreetBtnSprite.setPosition(btnCenterX, streetY);
+        mStreetBtnSprite.setScale(btnScale, btnScale);
+        mWindow.draw(mStreetBtnSprite);
+
+        mStreetBtnText.setCharacterSize(textBtnSize);
+        mStreetBtnText.setOrigin(mStreetBtnText.getLocalBounds().width / 2.0f, mStreetBtnText.getLocalBounds().height / 2.0f);
+        mStreetBtnText.setPosition(btnCenterX + textOffsetX, streetY + textOffsetY);
+        mWindow.draw(mStreetBtnText);
+    }
+
+    // --- РЕНДЕР МАГАЗИНА (ВКЛАДКА 2) ---
+    else if (mCurrentState == GameState::SHOP) {
         mWindow.draw(mShopBgSprite);
 
-        // 2. Настраиваем и рисуем металлическую доску Workshop Specials
         mBoardSprite.setOrigin(mBoardTexture.getSize().x / 2.0f, mBoardTexture.getSize().y / 2.0f);
         mBoardSprite.setPosition(640.0f, 350.0f);
 
-        // ТВОИ ЛИЧНЫЕ МАСШТАБЫ ТАБЛИЦЫ
         float boardScaleX = 0.42f;
         float boardScaleY = 0.35f;
 
@@ -425,47 +529,13 @@ void Game::render() {
             std::string setName;
         };
 
-        // ТВОИ ЛИЧНЫЕ КООРДИНАТЫ И НАЗВАНИЯ СЕТОВ
         AbsoluteShelfConfig shelves[3] = {
-            // ЛЕВАЯ ВИТРИНА (Tuc-Tuc Set)
-            {
-                0, 0,
-                0.3f, 0.11f,
-                410.0f, 330.0f,
-                450.0f, 300.0f,
-                408.0f, 462.0f,
-                408.0f, 513.0f,
-                "Tuc-Tuc Set"
-            },
-
-            // ЦЕНТРАЛЬНАЯ ВИТРИНА (Abdurahman Set)
-            {
-                1, 1,
-                0.16f, 0.04f,
-                630.0f, 325.0f,
-                680.0f, 290.0f,
-                640.0f, 462.0f,
-                640.0f, 513.0f,
-                "Abdurahman Set"
-            },
-
-            // ПРАВАЯ ВИТРИНА (Jugaad Mad Set)
-            {
-                2, 2,
-                0.16f, 0.3f,
-                860.0f, 335.0f,
-                915.0f, 321.0f,
-                872.0f, 462.0f,
-                872.0f, 513.0f,
-                "Jugaad Mad Set"
-            }
+            { 0, 0, 0.3f, 0.11f, 410.0f, 330.0f, 450.0f, 300.0f, 408.0f, 462.0f, 408.0f, 513.0f, "Tuc-Tuc Set" },
+            { 1, 1, 0.16f, 0.04f, 630.0f, 325.0f, 680.0f, 290.0f, 640.0f, 462.0f, 640.0f, 513.0f, "Abdurahman Set" },
+            { 2, 2, 0.16f, 0.3f, 860.0f, 335.0f, 915.0f, 321.0f, 872.0f, 462.0f, 872.0f, 513.0f, "Jugaad Mad Set" }
         };
 
-        // =========================================================================
-        //  ПЕРЕМЕННАЯ ВЫСОТЫ ДЛЯ ВСЕХ ТРЕХ НАЗВАНИЙ СЕТОВ СРАЗУ
-        // =========================================================================
-        float setsTitleHeight = 220.0f; // Меняй это число, чтобы сдвинуть ВСЕ ТРИ названия (меньше — выше, больше — ниже)
-        // =========================================================================
+        float setsTitleHeight = 220.0f;
 
         sf::Text uiText;
         uiText.setFont(mFont);
@@ -475,17 +545,14 @@ void Game::render() {
         for (int i = 0; i < 3; ++i) {
             AbsoluteShelfConfig cfg = shelves[i];
 
-            // Рисуем Двигатель
             mPreviewEngineSprites[cfg.engIdx].setPosition(cfg.engX, cfg.engY);
             mPreviewEngineSprites[cfg.engIdx].setScale(cfg.engScale, cfg.engScale);
             mWindow.draw(mPreviewEngineSprites[cfg.engIdx]);
 
-            // Рисуем Шину / Пилу
             mPreviewTireSprites[cfg.tireIdx].setPosition(cfg.tireX, cfg.tireY);
             mPreviewTireSprites[cfg.tireIdx].setScale(cfg.tireScale, cfg.tireScale);
             mWindow.draw(mPreviewTireSprites[cfg.tireIdx]);
 
-            // --- НАЗВАНИЕ СЕТА НАД ВИТРИНОЙ ---
             sf::Text headerText;
             headerText.setFont(mFont);
             headerText.setCharacterSize(26);
@@ -493,12 +560,9 @@ void Game::render() {
             headerText.setFillColor(sf::Color(45, 40, 35));
             headerText.setString(cfg.setName);
             headerText.setOrigin(headerText.getLocalBounds().width / 2.0f, headerText.getLocalBounds().height / 2.0f);
-
-            // Связали общую высоту со всеми тремя заголовками
             headerText.setPosition(cfg.priceX, setsTitleHeight);
             mWindow.draw(headerText);
 
-            // --- РЕНДЕР ТАБЛИЧКИ ЦЕНЫ (pricebg.png) ---
             mPriceBgSprites[i].setPosition(cfg.priceX, cfg.priceY);
             mPriceBgSprites[i].setScale(0.45f, 0.45f);
             mWindow.draw(mPriceBgSprites[i]);
@@ -513,7 +577,6 @@ void Game::render() {
             uiText.setPosition(cfg.priceX, cfg.priceY - 5.0f);
             mWindow.draw(uiText);
 
-            // --- РЕНДЕР КНОПКИ КЛИКА (buykey.png) ---
             mBuyKeySprites[i].setPosition(cfg.btnX, cfg.btnY);
             mBuyKeySprites[i].setScale(0.55f, 0.55f);
             mWindow.draw(mBuyKeySprites[i]);
@@ -527,12 +590,13 @@ void Game::render() {
             else {
                 uiText.setString("Equip");
             }
-            uiText.setOrigin(uiText.getLocalBounds().width / 2.0f, uiText.getLocalBounds().height / 2.0f);
-            uiText.setPosition(cfg.btnX, cfg.btnY - 5.0f);
+
+            uiText.setOrigin(uiText.getLocalBounds().left + uiText.getLocalBounds().width / 2.0f,
+                uiText.getLocalBounds().top + uiText.getLocalBounds().height / 2.0f);
+            uiText.setPosition(cfg.btnX, cfg.btnY - 1.0f);
             mWindow.draw(uiText);
         }
 
-        // --- ГЛАВНЫЙ ЗАГОЛОВОК ДОСКИ "Workshop Specials" (УПРАВЛЯЕТСЯ ОТДЕЛЬНО) ---
         sf::Text mainTitleText;
         mainTitleText.setFont(mFont);
         mainTitleText.setCharacterSize(36);
@@ -542,13 +606,9 @@ void Game::render() {
         mainTitleText.setOutlineThickness(1.5f);
         mainTitleText.setString("Workshop Specials");
         mainTitleText.setOrigin(mainTitleText.getLocalBounds().width / 2.0f, mainTitleText.getLocalBounds().height / 2.0f);
-
-        // Эта строчка настраивает высоту ТОЛЬКО для главной вывески доски:
         mainTitleText.setPosition(640.0f, 170.0f);
-
         mWindow.draw(mainTitleText);
 
-        // --- ВЕРХНИЙ СЧЕТЧИК МОНЕТ (monetybg2.png) ---
         mWindow.draw(mNewCoinBgSprite);
 
         sf::Text coinText;
@@ -564,12 +624,17 @@ void Game::render() {
         tipText.setFont(mFont);
         tipText.setCharacterSize(24);
         tipText.setFillColor(sf::Color::White);
-        tipText.setPosition(50.0f, 670.0f);
-        tipText.setString("Nacisnij [3] aby wrocic do gry");
+        tipText.setPosition(50.0f, 645.0f);
+        tipText.setString("Press [1] to return to Main Menu");
+        mWindow.draw(tipText);
+
+        tipText.setPosition(50.0f, 675.0f);
+        tipText.setString("Press [3] to go out to the Street");
         mWindow.draw(tipText);
     }
 
-    if (mCurrentState == GameState::PLAY) {
+    // --- РЕНДЕР ИГРЫ (ВКЛАДКА 3 - STREET) ---
+    else if (mCurrentState == GameState::PLAY) {
         mWindow.draw(mBackgroundSprite);
         mWindow.draw(mCharacterSprite);
         mWindow.draw(mLauncherSprite);
@@ -624,9 +689,52 @@ void Game::render() {
             mWindow.draw(mTireVisual);
         }
 
-        mWindow.draw(mScoreBackground);
-        mWindow.draw(mScoreText);
-        mWindow.draw(mCoinIcon);
+        // --- ТВОЙ НОВЫЙ ИНТЕРФЕЙС КОИНОВ (monetybg1.png) НА СЦЕНЕ ИГРЫ ---
+        // Используем mNewCoinBgTexture, так как она уже загружена, но подгружаем monetybg1.png для 3 экрана.
+        // Чтобы не менять заголовочный файл, мы временно переиспользуем mPriceBgTexture для проверки загрузки
+        // или просто безопасно нарисуем его, привязав к левому верхнему углу поближе (X=20, Y=20)
+
+        static sf::Texture playCoinTexture;
+        static bool isPlayCoinLoaded = false;
+        if (!isPlayCoinLoaded) {
+            if (playCoinTexture.loadFromFile("monetybg1.png")) {
+                isPlayCoinLoaded = true;
+            }
+        }
+
+        if (isPlayCoinLoaded) {
+            sf::Sprite playCoinSprite(playCoinTexture);
+            // Ставим поближе к углу экрана и масштабируем аккуратно
+            playCoinSprite.setPosition(20.0f, 20.0f);
+            playCoinSprite.setScale(0.07f, 0.07f);
+            mWindow.draw(playCoinSprite);
+
+            // Отрисовка цифр баланса внутри серой плашки monetybg1.png
+            sf::Text playCoinText;
+            playCoinText.setFont(mFont);
+            playCoinText.setCharacterSize(28);
+            playCoinText.setFillColor(sf::Color(60, 60, 60)); // Темно-серый пиксельный цвет под плашку
+            playCoinText.setString(std::to_string(mCoins));
+
+            // Центрируем текст ровно внутри нижнего серого поля
+            playCoinText.setOrigin(playCoinText.getLocalBounds().left + playCoinText.getLocalBounds().width / 2.0f,
+                playCoinText.getLocalBounds().top + playCoinText.getLocalBounds().height / 2.0f);
+
+            // Координаты центра серого поля с учетом масштаба 0.42
+            playCoinText.setPosition(20.0f + (playCoinTexture.getSize().x * 0.07f) / 2.0f, 20.0f + 72.0f);
+            mWindow.draw(playCoinText);
+        }
+
+        // --- ПОДСКАЗКА НАВИГАЦИИ СНИЗУ НА ТРЕТЬЕМ ЭКРАНЕ ---
+        sf::Text playNavigationText;
+        playNavigationText.setFont(mFont);
+        playNavigationText.setCharacterSize(24);
+        playNavigationText.setFillColor(sf::Color::White);
+        playNavigationText.setOutlineColor(sf::Color::Black);
+        playNavigationText.setOutlineThickness(1.5f);
+        playNavigationText.setPosition(50.0f, 675.0f);
+        playNavigationText.setString("Press [1] for Main Menu | Press [2] for Workshop");
+        mWindow.draw(playNavigationText);
     }
 
     mWindow.display();
