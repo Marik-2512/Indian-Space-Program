@@ -49,7 +49,6 @@ public:
         mDistance += mVelocityX * fixedDt;
         mAltitude += mVelocityY * fixedDt;
 
-        // --- УЛЕТЕЛО ЗА ЭКРАН (Конец полета без ожидания) ---
         if (mDistance > 1300.0f) {
             mIsFlying = false;
             return;
@@ -64,6 +63,19 @@ public:
                 mIsFlying = false;
             }
         }
+    }
+
+    void bounceOffShield() {
+        if (mVelocityX > 0.0f) {
+            mVelocityX = -mVelocityX * 0.5f;
+        }
+        mVelocityY = -std::abs(mVelocityY) * 0.5f;
+    }
+
+    // --- НОВАЯ ФУНКЦИЯ ФИЗИЧЕСКОГО ТОРМОЖЕНИЯ ---
+    void reduceSpeed(float factor) {
+        mVelocityX *= factor; // Гасим скорость полета вперед
+        mVelocityY *= factor; // Гасим силу взлета
     }
 
     std::vector<sf::Vector2f> getTrajectoryPoints(float powerMultiplier, float angleDegrees, sf::Vector2f startPos) {

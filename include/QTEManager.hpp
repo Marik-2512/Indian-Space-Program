@@ -6,7 +6,7 @@ enum class QTEState { INACTIVE, POWER_SELECT, ANGLE_SELECT, DONE };
 class QTEManager {
 public:
     QTEManager() : mState(QTEState::INACTIVE), mPowerIndicator(0.0f), mAngle(45.0f),
-        mMovingUp(true), mPowerSpeed(1.5f), mAngleSpeed(50.0f), mFinalPowerMult(0.0f) {
+        mMovingUp(true), mPowerSpeed(1.5f), mAngleSpeed(75.0f), mFinalPowerMult(0.0f) {
     }
 
     void start() {
@@ -51,22 +51,19 @@ public:
 
     bool pressSpace() {
         if (mState == QTEState::POWER_SELECT) {
-            // --- НОВЫЕ РАЗМЕРЫ ЗОН ---
-            // Зеленая зона: от 0.4 до 0.6 (стала в 2 раза шире)
             if (mPowerIndicator >= 0.4f && mPowerIndicator <= 0.6f) {
                 mFinalPowerMult = 1.0f;
-                mAngleSpeed = 35.0f;
-            }
-            // Желтая зона: от 0.2 до 0.4 И от 0.6 до 0.8
-            else if ((mPowerIndicator >= 0.2f && mPowerIndicator < 0.4f) ||
-                (mPowerIndicator > 0.6f && mPowerIndicator <= 0.8f)) {
-                mFinalPowerMult = 0.6f;
                 mAngleSpeed = 75.0f;
             }
-            // Красная зона: только самые края (меньше 0.2 или больше 0.8)
+            else if ((mPowerIndicator >= 0.2f && mPowerIndicator < 0.4f) ||
+                (mPowerIndicator > 0.6f && mPowerIndicator <= 0.8f)) {
+                mFinalPowerMult = 0.75f;
+                mAngleSpeed = 75.0f;
+            }
             else {
-                mFinalPowerMult = 0.15f;
-                mAngleSpeed = 160.0f;
+                // --- БАФ КРАСНОЙ ЗОНЫ: ТЕПЕРЬ 0.4f ВМЕСТО 0.15f ---
+                mFinalPowerMult = 0.4f;
+                mAngleSpeed = 75.0f;
             }
 
             mState = QTEState::ANGLE_SELECT;

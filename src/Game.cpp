@@ -2,6 +2,7 @@
 #include "GameObject.hpp"
 #include <cstdlib>
 #include <ctime>
+#include <cmath> // Для математики мигания
 
 Game::Game()
     : mWindow(sf::VideoMode(1280, 720), "Warsztat Jugaad")
@@ -13,6 +14,14 @@ Game::Game()
     , mIsCelebrating(false)
     , mFrameDuration(0.12f)
     , mCelebrateStartFrame(2)
+    , mMobsKilled(0)
+    , mMobsForBoss(1)
+    , mIsBossActive(false)
+    , mHitSlowdownTimer(0.0f)
+    , mIsBossWarningActive(false)
+    , mBossWarningTimer(0.0f)
+    , mIsBossDefeatedMessageActive(false)
+    , mBossDefeatedTimer(0.0f)
 {
     srand(static_cast<unsigned int>(time(0)));
     mWindow.setFramerateLimit(60);
@@ -20,6 +29,49 @@ Game::Game()
     if (!mFont.loadFromFile("VT323-Regular.ttf")) {
         std::cout << "[Error] Font missing!" << std::endl;
     }
+
+    // --- НАСТРОЙКА КРАСНОГО МИГАНИЯ И ТАБЛИЧКИ WARNING ---
+    mRedFlashRect.setSize(sf::Vector2f(1280.0f, 720.0f));
+    mRedFlashRect.setFillColor(sf::Color(255, 0, 0, 0)); // Прозрачный по умолчанию
+
+    mWarningText.setFont(mFont);
+    mWarningText.setCharacterSize(100);
+    mWarningText.setStyle(sf::Text::Bold);
+    mWarningText.setFillColor(sf::Color(255, 50, 50));
+    mWarningText.setOutlineColor(sf::Color::Black);
+    mWarningText.setOutlineThickness(5.0f);
+    mWarningText.setString("WARNING: BOSS APPROACHING!");
+    mWarningText.setOrigin(mWarningText.getLocalBounds().width / 2.0f, mWarningText.getLocalBounds().height / 2.0f);
+    mWarningText.setPosition(640.0f, 300.0f);
+
+    // --- НАСТРОЙКА ТАБЛИЧКИ BOSS DEFEATED ---
+    mDefeatedText.setFont(mFont);
+    mDefeatedText.setCharacterSize(110);
+    mDefeatedText.setStyle(sf::Text::Bold);
+    mDefeatedText.setFillColor(sf::Color(255, 215, 0)); // Золотой
+    mDefeatedText.setOutlineColor(sf::Color::Black);
+    mDefeatedText.setOutlineThickness(6.0f);
+    mDefeatedText.setString("BOSS DEFEATED!");
+    mDefeatedText.setOrigin(mDefeatedText.getLocalBounds().width / 2.0f, mDefeatedText.getLocalBounds().height / 2.0f);
+    mDefeatedText.setPosition(640.0f, 300.0f);
+
+    mBossProgressBarBg.setSize(sf::Vector2f(200.0f, 20.0f));
+    mBossProgressBarBg.setFillColor(sf::Color(50, 50, 50, 200));
+    mBossProgressBarBg.setOutlineThickness(2.0f);
+    mBossProgressBarBg.setOutlineColor(sf::Color::Black);
+    mBossProgressBarBg.setPosition(1050.0f, 35.0f);
+
+    mBossProgressBar.setSize(sf::Vector2f(0.0f, 20.0f));
+    mBossProgressBar.setFillColor(sf::Color(255, 150, 0));
+    mBossProgressBar.setPosition(1050.0f, 35.0f);
+
+    mBossProgressText.setFont(mFont);
+    mBossProgressText.setCharacterSize(22);
+    mBossProgressText.setFillColor(sf::Color::White);
+    mBossProgressText.setOutlineThickness(1.5f);
+    mBossProgressText.setOutlineColor(sf::Color::Black);
+    mBossProgressText.setPosition(1050.0f, 8.0f);
+    mBossProgressText.setString("DRONES KILLED:");
 
     mScoreBackground.setSize(sf::Vector2f(200.0f, 45.0f));
     mScoreBackground.setFillColor(sf::Color(35, 45, 56));
@@ -51,7 +103,6 @@ Game::Game()
     }
     else {
         mCharacterSprite.setTexture(mCharacterTexture);
-
         mCharacterFrames.clear();
         mCharacterFrames.push_back(sf::IntRect(16, 0, 171, 600));
         mCharacterFrames.push_back(sf::IntRect(209, 0, 191, 600));
@@ -60,15 +111,13 @@ Game::Game()
 
         mCharacterSprite.setTextureRect(mCharacterFrames[0]);
         mCharacterSprite.setOrigin(mCharacterFrames[0].width / 2.0f, mCharacterFrames[0].height / 2.0f);
-
         mCharacterSprite.setPosition(110.0f, 520.0f);
         mCharacterSprite.setScale(0.45f, 0.45f);
     }
 
-    // --- ИСПРАВЛЕНА МОЩНОСТЬ 3-ГО ДВИГАТЕЛЯ (1.2f -> 0.85f) ---
     mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.35f, 1.5f));
     mUpgrades.push_back(UpgradeSet("Abdurahman Set", 150, false, 0.55f, 1.0f));
-    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 0.85f, 0.4f));
+    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 0.75f, 0.4f));
 
     if (!mShopBgTexture.loadFromFile("fon_mag.png")) {
         std::cout << "[Error] Could not load fon_mag.png!" << std::endl;
@@ -150,10 +199,15 @@ Game::Game()
     mStreetBtnText.setFillColor(sf::Color::White);
     mStreetBtnText.setString("Street");
 
+    mResetBtnSprite.setTexture(mBuyKeyTexture);
+    mResetBtnText.setFont(mFont);
+    mResetBtnText.setFillColor(sf::Color(255, 100, 100));
+    mResetBtnText.setString("RESET");
+
     loadProgress();
     applyUpgrades();
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 5; ++i) {
         mTargets.push_back(nullptr);
         spawnTarget(i);
     }
@@ -163,11 +217,13 @@ void Game::spawnTarget(int index) {
     float randomY;
     int chance = rand() % 100;
 
-    if (chance < 45) {
+    // Убрали спавн босса отсюда, он теперь спавнится после предупреждения в update!
+
+    if (chance < 35) {
         mTargets[index] = std::make_unique<Bird>();
         randomY = 150.0f + static_cast<float>(rand() % 200);
     }
-    else if (chance < 75) {
+    else if (chance < 85) {
         mTargets[index] = std::make_unique<Drone>();
         randomY = 30.0f + static_cast<float>(rand() % 90);
     }
@@ -177,7 +233,7 @@ void Game::spawnTarget(int index) {
     }
 
     int side = rand() % 2;
-    float baseSpeed = 100.0f + static_cast<float>(rand() % 150);
+    float baseSpeed = 150.0f + static_cast<float>(rand() % 200);
 
     if (side == 0) {
         mTargets[index]->setPosition(-50.0f, randomY);
@@ -278,12 +334,11 @@ void Game::processEvents() {
 
                             float finalPwr = mQteManager.getFinalPowerMult();
 
-                            // --- НАЧИСЛЕНИЕ МОНЕТ ЗА ПОПАДАНИЕ В ЗОНУ ---
                             if (finalPwr == 1.0f) {
                                 mCoins += 10;
                                 std::cout << "[Game] Perfect Timing! +10 Coins" << std::endl;
                             }
-                            else if (finalPwr == 0.6f) {
+                            else if (finalPwr >= 0.6f && finalPwr < 1.0f) {
                                 mCoins += 5;
                                 std::cout << "[Game] Good Timing! +5 Coins" << std::endl;
                             }
@@ -304,18 +359,37 @@ void Game::processEvents() {
                 float menuBtnCenterX = 530.0f;
                 float workshopBtnY = 300.0f;
                 float streetBtnY = 400.0f;
+                float resetBtnY = 500.0f;
 
                 float btnW = static_cast<float>(mBuyKeyTexture.getSize().x) * menuBtnScale;
                 float btnH = static_cast<float>(mBuyKeyTexture.getSize().y) * menuBtnScale;
 
                 sf::FloatRect workshopBounds(menuBtnCenterX, workshopBtnY, btnW, btnH);
                 sf::FloatRect streetBounds(menuBtnCenterX, streetBtnY, btnW, btnH);
+                sf::FloatRect resetBounds(menuBtnCenterX, resetBtnY, btnW, btnH);
 
                 if (workshopBounds.contains(mousePos.x, mousePos.y)) {
                     mCurrentState = GameState::SHOP;
                 }
                 else if (streetBounds.contains(mousePos.x, mousePos.y)) {
                     mCurrentState = GameState::PLAY;
+                }
+                else if (resetBounds.contains(mousePos.x, mousePos.y)) {
+                    mCoins = 0;
+                    mCurrentUpgradeLevel = 0;
+                    mMobsKilled = 0;
+                    mIsBossActive = false;
+                    mIsBossWarningActive = false;
+                    mIsBossDefeatedMessageActive = false;
+                    mUpgrades.clear();
+
+                    mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.35f, 1.5f));
+                    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 150, false, 0.55f, 1.0f));
+                    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 0.75f, 0.4f));
+
+                    applyUpgrades();
+                    saveProgress();
+                    std::cout << "[Menu] Progress Reset to ZERO!" << std::endl;
                 }
             }
             else if (mCurrentState == GameState::SHOP) {
@@ -361,6 +435,57 @@ void Game::update(sf::Time deltaTime) {
 
     mScoreText.setString("COINS: " + std::to_string(mCoins));
 
+    float dt = deltaTime.asSeconds();
+    sf::Time scaledTime = sf::seconds(dt);
+
+    // --- ЛОГИКА WARNING ПОЯВЛЕНИЯ БОССА ---
+    if (mMobsKilled >= mMobsForBoss && !mIsBossActive && !mIsBossWarningActive && mCoins >= 50) {
+        mIsBossWarningActive = true;
+        mBossWarningTimer = 3.0f; // 3 секунды на мигание
+        mMobsKilled = 0;
+    }
+
+    if (mIsBossWarningActive) {
+        mBossWarningTimer -= deltaTime.asSeconds(); // Используем реальное время, не слоу-мо
+
+        // Мигание красным с помощью математики синуса (3 пика за 3 секунды)
+        int alpha = static_cast<int>(std::abs(std::sin(mBossWarningTimer * 3.14159f)) * 130.0f);
+        mRedFlashRect.setFillColor(sf::Color(255, 0, 0, alpha));
+
+        // Когда 3 секунды заканчиваются - спавним босса
+        if (mBossWarningTimer <= 0.0f) {
+            mIsBossWarningActive = false;
+            mIsBossActive = true;
+
+            // Заменяем 0-й слот мобов на Босса
+            mTargets[0] = std::make_unique<Boss>();
+            mTargets[0]->setPosition(800.0f, 300.0f);
+            mTargets[0]->setSpeed(0.0f);
+        }
+    }
+
+    // --- ЛОГИКА ТАБЛИЧКИ ПОБЕДЫ ---
+    if (mIsBossDefeatedMessageActive) {
+        mBossDefeatedTimer -= deltaTime.asSeconds();
+        if (mBossDefeatedTimer <= 0.0f) {
+            mIsBossDefeatedMessageActive = false;
+        }
+    }
+    // -------------------------------------
+
+    if (mIsBossActive || mIsBossWarningActive) {
+        mBossProgressBar.setSize(sf::Vector2f(200.0f, 20.0f));
+        mBossProgressBar.setFillColor(sf::Color::Red);
+        mBossProgressText.setString(mIsBossWarningActive ? "WARNING!" : "BOSS FIGHT!");
+    }
+    else {
+        float pct = static_cast<float>(mMobsKilled) / mMobsForBoss;
+        if (pct > 1.0f) pct = 1.0f;
+        mBossProgressBar.setSize(sf::Vector2f(200.0f * pct, 20.0f));
+        mBossProgressBar.setFillColor(sf::Color(255, 150, 0));
+        mBossProgressText.setString("DRONES KILLED: " + std::to_string(mMobsKilled) + "/" + std::to_string(mMobsForBoss));
+    }
+
     if (!mCharacterFrames.empty()) {
         if (mIsCelebrating) {
             if (mAnimationClock.getElapsedTime().asSeconds() > mFrameDuration) {
@@ -386,7 +511,7 @@ void Game::update(sf::Time deltaTime) {
     for (size_t i = 0; i < mTargets.size(); ++i) {
         if (!mTargets[i]->isActive()) continue;
 
-        mTargets[i]->update(deltaTime);
+        mTargets[i]->update(scaledTime);
         sf::Vector2f pos = mTargets[i]->getPosition();
         float spd = mTargets[i]->getSpeed();
 
@@ -398,9 +523,9 @@ void Game::update(sf::Time deltaTime) {
         }
     }
 
-    if (!mRocket.isFlying()) mQteManager.update(deltaTime);
+    if (!mRocket.isFlying()) mQteManager.update(scaledTime);
 
-    mRocket.update(deltaTime.asSeconds());
+    mRocket.update(dt);
 
     if (mRocket.isFlying()) {
         sf::Vector2f startPos(290.0f, 550.0f);
@@ -410,7 +535,7 @@ void Game::update(sf::Time deltaTime) {
         float groundY = 635.0f;
 
         mTireVisual.setPosition(startPos.x + mRocket.getDistance(), groundY - mRocket.getAltitude());
-        mTireVisual.rotate(360.0f * deltaTime.asSeconds());
+        mTireVisual.rotate(360.0f * dt);
 
         sf::FloatRect tireBox = mTireVisual.getGlobalBounds();
 
@@ -425,29 +550,52 @@ void Game::update(sf::Time deltaTime) {
 
         for (size_t i = 0; i < mTargets.size(); ++i) {
             if (mTargets[i]->isActive() && smallTireBox.intersects(mTargets[i]->getBounds())) {
-                mTargets[i]->setActive(false);
-                mCoins += mTargets[i]->getReward();
 
-                if (mCoins < 0) mCoins = 0;
+                float damage = mRocket.getLastPowerMult() * mUpgrades[mCurrentUpgradeLevel].getSpeedBonus();
+                HitResult hitRes = mTargets[i]->takeDamage(damage);
 
-                if (mTargets[i]->getReward() > 0 && !mIsCelebrating && mCharacterCurrentFrame == 0) {
-                    mIsCelebrating = true;
-                    mCharacterCurrentFrame = mCelebrateStartFrame;
-
-                    if (!mCharacterFrames.empty()) {
-                        mCharacterSprite.setTextureRect(mCharacterFrames[mCharacterCurrentFrame]);
-                    }
-                    mAnimationClock.restart();
+                if (hitRes == HitResult::IGNORED) {
+                    continue;
                 }
+                else if (hitRes == HitResult::DAMAGED) {
+                    mCoins += 15;
+                    std::cout << "[Game] Hit Boss! +15 Coins" << std::endl;
+                    mRocket.bounceOffShield();
+                    mHitSlowdownTimer = 0.3f;
+                }
+                else if (hitRes == HitResult::KILLED) {
+                    if (mTargets[i]->isBoss()) {
+                        mIsBossActive = false;
+                        mHitSlowdownTimer = 1.0f;
 
-                spawnTarget(static_cast<int>(i));
+                        // --- ЗАПУСКАЕМ ТАБЛИЧКУ ПОБЕДЫ ---
+                        mIsBossDefeatedMessageActive = true;
+                        mBossDefeatedTimer = 3.0f;
+                    }
+                    else {
+                        if (!mIsBossActive && !mIsBossWarningActive && mTargets[i]->isDrone()) {
+                            mMobsKilled++;
+                        }
+                        mHitSlowdownTimer = 0.2f;
+                    }
+
+                    mCoins += mTargets[i]->getReward();
+                    if (mCoins < 0) mCoins = 0;
+
+                    if (mTargets[i]->getReward() > 0 && !mIsCelebrating && mCharacterCurrentFrame == 0) {
+                        mIsCelebrating = true;
+                        mCharacterCurrentFrame = mCelebrateStartFrame;
+                        if (!mCharacterFrames.empty()) mCharacterSprite.setTextureRect(mCharacterFrames[mCharacterCurrentFrame]);
+                        mAnimationClock.restart();
+                    }
+                    spawnTarget(static_cast<int>(i));
+                }
             }
         }
     }
 
     bool currentlyFlying = mRocket.isFlying();
     if (mWasFlying && !currentlyFlying) {
-        // --- Убрано начисление монет за дистанцию ---
         saveProgress();
     }
     mWasFlying = currentlyFlying;
@@ -493,6 +641,16 @@ void Game::render() {
         mStreetBtnText.setOrigin(mStreetBtnText.getLocalBounds().width / 2.0f, mStreetBtnText.getLocalBounds().height / 2.0f);
         mStreetBtnText.setPosition(btnCenterX + textOffsetX, streetY + textOffsetY);
         mWindow.draw(mStreetBtnText);
+
+        float resetY = 500.0f;
+        mResetBtnSprite.setPosition(btnCenterX, resetY);
+        mResetBtnSprite.setScale(btnScale, btnScale);
+        mWindow.draw(mResetBtnSprite);
+
+        mResetBtnText.setCharacterSize(textBtnSize);
+        mResetBtnText.setOrigin(mResetBtnText.getLocalBounds().width / 2.0f, mResetBtnText.getLocalBounds().height / 2.0f);
+        mResetBtnText.setPosition(btnCenterX + textOffsetX, resetY + textOffsetY);
+        mWindow.draw(mResetBtnText);
     }
     else if (mCurrentState == GameState::SHOP) {
         mWindow.draw(mShopBgSprite);
@@ -611,6 +769,10 @@ void Game::render() {
             target->draw(mWindow);
         }
 
+        mWindow.draw(mBossProgressBarBg);
+        mWindow.draw(mBossProgressBar);
+        mWindow.draw(mBossProgressText);
+
         sf::Vector2f startPos(290.0f, 550.0f);
         if (mCurrentUpgradeLevel == 1) startPos = sf::Vector2f(340.0f, 510.0f);
         else if (mCurrentUpgradeLevel == 2) startPos = sf::Vector2f(305.0f, 575.0f);
@@ -635,9 +797,8 @@ void Game::render() {
         else {
             mTireVisual.setPosition(startPos);
 
-            // --- КРУТИМ КОЛЕСО НА ЭТАПЕ ВЫБОРА УГЛА ---
             if (mQteManager.getState() == QTEState::ANGLE_SELECT) {
-                float spinSpeed = 800.0f * mQteManager.getFinalPowerMult(); // Чем точнее попал, тем быстрее жужжит
+                float spinSpeed = 800.0f * mQteManager.getFinalPowerMult();
                 mTireVisual.rotate(spinSpeed * (1.0f / 60.0f));
             }
             else {
@@ -726,6 +887,15 @@ void Game::render() {
         playNavigationText.setPosition(50.0f, 675.0f);
         playNavigationText.setString("Press [1] for Main Menu | Press [2] for Workshop");
         mWindow.draw(playNavigationText);
+
+        // --- ОТРИСОВКА ЭФФЕКТОВ И ТАБЛИЧЕК ПОВЕРХ ВСЕГО ---
+        if (mIsBossWarningActive) {
+            mWindow.draw(mRedFlashRect);
+            mWindow.draw(mWarningText);
+        }
+        if (mIsBossDefeatedMessageActive) {
+            mWindow.draw(mDefeatedText);
+        }
     }
 
     mWindow.display();
