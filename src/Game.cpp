@@ -15,10 +15,10 @@ Game::Game()
     , mFrameDuration(0.12f)
     , mCelebrateStartFrame(2)
     , mMobsKilled(0)
-    , mMobsForBoss(1)
+    , mMobsForBoss(10)
     , mIsBossActive(false)
     , mCowsHit(0)
-    , mCowsForGameOver(5) // Изменено на 5 коров для Game Over
+    , mCowsForGameOver(5)
     , mHitSlowdownTimer(0.0f)
     , mIsBossWarningActive(false)
     , mBossWarningTimer(0.0f)
@@ -69,7 +69,6 @@ Game::Game()
     mDefeatedText.setOrigin(mDefeatedText.getLocalBounds().width / 2.0f, mDefeatedText.getLocalBounds().height / 2.0f);
     mDefeatedText.setPosition(640.0f, 300.0f);
 
-    // --- НАСТРОЙКА ФОНАРЕЙ / ПРОЖЕКТОРОВ ПОБЕДЫ ---
     mLightBeam1.setPointCount(4);
     mLightBeam1.setPoint(0, sf::Vector2f(-180.0f, -1200.0f));
     mLightBeam1.setPoint(1, sf::Vector2f(180.0f, -1200.0f));
@@ -85,9 +84,7 @@ Game::Game()
     mLightBeam2.setPoint(3, sf::Vector2f(-20.0f, 0.0f));
     mLightBeam2.setFillColor(sf::Color(255, 255, 200, 0));
     mLightBeam2.setPosition(1080.0f, 800.0f);
-    // ----------------------------------------------
 
-    // --- НАСТРОЙКА КУБКА И ТЕКСТА ПОБЕДЫ ---
     if (!mCupTexture.loadFromFile("cup.png")) {
         std::cout << "[Error] Could not load cup.png!" << std::endl;
     }
@@ -101,14 +98,13 @@ Game::Game()
     mCongratsText.setFont(mFont);
     mCongratsText.setCharacterSize(80);
     mCongratsText.setStyle(sf::Text::Bold);
-    mCongratsText.setFillColor(sf::Color(255, 215, 0)); // Золотой
+    mCongratsText.setFillColor(sf::Color(255, 215, 0));
     mCongratsText.setOutlineColor(sf::Color::Black);
     mCongratsText.setOutlineThickness(4.0f);
     mCongratsText.setString("CONGRATULATIONS!");
     mCongratsText.setOrigin(mCongratsText.getLocalBounds().left + mCongratsText.getLocalBounds().width / 2.0f,
         mCongratsText.getLocalBounds().top + mCongratsText.getLocalBounds().height / 2.0f);
     mCongratsText.setPosition(640.0f, 100.0f);
-    // ----------------------------------------
 
     mCowProgressBarBg.setSize(sf::Vector2f(200.0f, 20.0f));
     mCowProgressBarBg.setFillColor(sf::Color(50, 50, 50, 200));
@@ -189,8 +185,8 @@ Game::Game()
     }
 
     mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.4125f, 1.5f));
-    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 150, false, 0.55f, 1.0f));
-    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 0.75f, 0.4f));
+    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 300, false, 0.55f, 1.0f));
+    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 1000, false, 0.75f, 0.4f));
 
     if (!mShopBgTexture.loadFromFile("fon_mag.png")) {
         std::cout << "[Error] Could not load fon_mag.png!" << std::endl;
@@ -269,7 +265,6 @@ Game::Game()
 
         mInstBtnSprite.setTexture(mBuyKeyTexture);
 
-        // --- НАСТРОЙКА КНОПОК ПОБЕДЫ ---
         mVictoryQuitBtnSprite.setTexture(mBuyKeyTexture);
         mVictoryQuitBtnSprite.setOrigin(mBuyKeyTexture.getSize().x / 2.0f, mBuyKeyTexture.getSize().y / 2.0f);
         mVictoryQuitBtnSprite.setPosition(460.0f, 620.0f);
@@ -312,7 +307,7 @@ Game::Game()
     mMenuTitleText.setFillColor(sf::Color(255, 215, 0));
     mMenuTitleText.setOutlineColor(sf::Color::Black);
     mMenuTitleText.setOutlineThickness(4.0f);
-    mMenuTitleText.setString("TIRE LAUNCHER"); // Изменено название в меню
+    mMenuTitleText.setString("TIRE LAUNCHER");
 
     mWorkshopBtnSprite.setTexture(mBuyKeyTexture);
     mWorkshopBtnText.setFont(mFont);
@@ -543,8 +538,8 @@ void Game::processEvents() {
                     mUpgrades.clear();
 
                     mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.4125f, 1.5f));
-                    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 150, false, 0.55f, 1.0f));
-                    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 0.75f, 0.4f));
+                    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 300, false, 0.55f, 1.0f));
+                    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 1000, false, 0.75f, 0.4f));
 
                     applyUpgrades();
                     saveProgress();
@@ -654,8 +649,8 @@ void Game::update(sf::Time deltaTime) {
             mUpgrades.clear();
 
             mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.4125f, 1.5f));
-            mUpgrades.push_back(UpgradeSet("Abdurahman Set", 150, false, 0.55f, 1.0f));
-            mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 0.75f, 0.4f));
+            mUpgrades.push_back(UpgradeSet("Abdurahman Set", 300, false, 0.55f, 1.0f));
+            mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 1000, false, 0.75f, 0.4f));
 
             applyUpgrades();
             saveProgress();
