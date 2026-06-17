@@ -18,7 +18,7 @@ Game::Game()
     , mMobsForBoss(1)
     , mIsBossActive(false)
     , mCowsHit(0)
-    , mCowsForGameOver(3)
+    , mCowsForGameOver(5) // Изменено на 5 коров для Game Over
     , mHitSlowdownTimer(0.0f)
     , mIsBossWarningActive(false)
     , mBossWarningTimer(0.0f)
@@ -26,7 +26,8 @@ Game::Game()
     , mBossDefeatedTimer(0.0f)
     , mIsGameOverActive(false)
     , mGameOverTimer(0.0f)
-    , mIsVictoryScreenActive(false) // <-- Инициализация экрана победы
+    , mIsVictoryScreenActive(false)
+    , mVictoryAnimTimer(0.0f)
 {
     srand(static_cast<unsigned int>(time(0)));
     mWindow.setFramerateLimit(60);
@@ -67,6 +68,24 @@ Game::Game()
     mDefeatedText.setString("BOSS DEFEATED!");
     mDefeatedText.setOrigin(mDefeatedText.getLocalBounds().width / 2.0f, mDefeatedText.getLocalBounds().height / 2.0f);
     mDefeatedText.setPosition(640.0f, 300.0f);
+
+    // --- НАСТРОЙКА ФОНАРЕЙ / ПРОЖЕКТОРОВ ПОБЕДЫ ---
+    mLightBeam1.setPointCount(4);
+    mLightBeam1.setPoint(0, sf::Vector2f(-180.0f, -1200.0f));
+    mLightBeam1.setPoint(1, sf::Vector2f(180.0f, -1200.0f));
+    mLightBeam1.setPoint(2, sf::Vector2f(20.0f, 0.0f));
+    mLightBeam1.setPoint(3, sf::Vector2f(-20.0f, 0.0f));
+    mLightBeam1.setFillColor(sf::Color(255, 255, 200, 0));
+    mLightBeam1.setPosition(200.0f, 800.0f);
+
+    mLightBeam2.setPointCount(4);
+    mLightBeam2.setPoint(0, sf::Vector2f(-180.0f, -1200.0f));
+    mLightBeam2.setPoint(1, sf::Vector2f(180.0f, -1200.0f));
+    mLightBeam2.setPoint(2, sf::Vector2f(20.0f, 0.0f));
+    mLightBeam2.setPoint(3, sf::Vector2f(-20.0f, 0.0f));
+    mLightBeam2.setFillColor(sf::Color(255, 255, 200, 0));
+    mLightBeam2.setPosition(1080.0f, 800.0f);
+    // ----------------------------------------------
 
     // --- НАСТРОЙКА КУБКА И ТЕКСТА ПОБЕДЫ ---
     if (!mCupTexture.loadFromFile("cup.png")) {
@@ -262,7 +281,6 @@ Game::Game()
         mVictoryContBtnSprite.setScale(1.2f, 1.2f);
     }
 
-    // Тексты кнопок победы
     mVictoryQuitBtnText.setFont(mFont);
     mVictoryQuitBtnText.setCharacterSize(38);
     mVictoryQuitBtnText.setFillColor(sf::Color::White);
@@ -294,7 +312,7 @@ Game::Game()
     mMenuTitleText.setFillColor(sf::Color(255, 215, 0));
     mMenuTitleText.setOutlineColor(sf::Color::Black);
     mMenuTitleText.setOutlineThickness(4.0f);
-    mMenuTitleText.setString("TIRE LAUNCH");
+    mMenuTitleText.setString("TIRE LAUNCHER"); // Изменено название в меню
 
     mWorkshopBtnSprite.setTexture(mBuyKeyTexture);
     mWorkshopBtnText.setFont(mFont);
@@ -418,22 +436,21 @@ void Game::processEvents() {
 
         if (mIsGameOverActive) continue;
 
-        // --- ЛОГИКА НАЖАТИЙ НА КНОПКИ В ЭКРАНЕ ПОБЕДЫ ---
         if (mIsVictoryScreenActive) {
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                 sf::Vector2i pixelPos = sf::Mouse::getPosition(mWindow);
                 sf::Vector2f mousePos = mWindow.mapPixelToCoords(pixelPos);
 
                 if (mVictoryQuitBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
-                    mWindow.close(); // Кнопка Quit выключает игру
+                    mWindow.close();
                 }
                 else if (mVictoryContBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
-                    mIsVictoryScreenActive = false; // Кнопка Continue закрывает плашку, продолжаем играть
+                    mIsVictoryScreenActive = false;
+                    mVictoryAnimTimer = 0.0f;
                 }
             }
-            continue; // Блокируем остальные действия (пробел и т.д.), пока висит кубок
+            continue;
         }
-        // ------------------------------------------------
 
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::Num1) mCurrentState = GameState::MENU;
@@ -575,13 +592,37 @@ void Game::processEvents() {
 void Game::update(sf::Time deltaTime) {
     if (mCurrentState != GameState::PLAY) return;
 
-    // --- ЕСЛИ ЭКРАН ПОБЕДЫ АКТИВЕН - ЗАМОРАЖИВАЕМ ИГРУ ---
-    if (mIsVictoryScreenActive) {
-        return; // Физика, таймеры и движения не обновляются!
-    }
-    // ------------------------------------------------------
-
     float dt = deltaTime.asSeconds();
+
+    if (mIsVictoryScreenActive) {
+        mVictoryAnimTimer += dt;
+
+        float animDuration = 1.5f;
+        float t = mVictoryAnimTimer / animDuration;
+        if (t > 1.0f) t = 1.0f;
+
+        float smoothT = std::sin(t * 3.14159f / 2.0f);
+        float yOffset = 800.0f * (1.0f - smoothT);
+
+        mCupSprite.setPosition(640.0f, 350.0f + yOffset);
+        mCongratsText.setPosition(640.0f, 100.0f + yOffset);
+        mVictoryQuitBtnSprite.setPosition(460.0f, 620.0f + yOffset);
+        mVictoryQuitBtnText.setPosition(460.0f, 620.0f + yOffset);
+        mVictoryContBtnSprite.setPosition(820.0f, 620.0f + yOffset);
+        mVictoryContBtnText.setPosition(820.0f, 620.0f + yOffset);
+
+        int beamAlpha = static_cast<int>(60.0f * smoothT);
+        mLightBeam1.setFillColor(sf::Color(255, 255, 200, beamAlpha));
+        mLightBeam2.setFillColor(sf::Color(255, 255, 200, beamAlpha));
+
+        float angle1 = 20.0f + std::sin(mVictoryAnimTimer * 2.0f) * 15.0f;
+        float angle2 = -20.0f + std::cos(mVictoryAnimTimer * 2.3f) * 15.0f;
+        mLightBeam1.setRotation(angle1);
+        mLightBeam2.setRotation(angle2);
+
+        return;
+    }
+
     sf::Time scaledTime = sf::seconds(dt);
 
     if (mIsGameOverActive) {
@@ -759,12 +800,8 @@ void Game::update(sf::Time deltaTime) {
                         mIsBossActive = false;
                         mHitSlowdownTimer = 1.0f;
 
-                        mIsBossDefeatedMessageActive = true;
-                        mBossDefeatedTimer = 3.0f;
-
-                        // --- АКТИВАЦИЯ ЭКРАНА ПОБЕДЫ ---
                         mIsVictoryScreenActive = true;
-                        // -------------------------------
+                        mVictoryAnimTimer = 0.0f;
                     }
                     else {
                         if (!mIsBossActive && !mIsBossWarningActive && mTargets[i]->isDrone()) {
@@ -1140,33 +1177,32 @@ void Game::render() {
             mWindow.draw(mRedFlashRect);
             mWindow.draw(mWarningText);
         }
-        if (mIsBossDefeatedMessageActive) {
-            mWindow.draw(mDefeatedText);
-        }
 
         if (mIsGameOverActive) {
             mWindow.draw(mRedFlashRect);
             mWindow.draw(mGameOverText);
         }
 
-        // --- ОТРИСОВКА ЭКРАНА ПОБЕДЫ ---
         if (mIsVictoryScreenActive) {
-            // Рисуем темное полупрозрачное затемнение
+            float t = mVictoryAnimTimer / 1.5f;
+            if (t > 1.0f) t = 1.0f;
+            float smoothT = std::sin(t * 3.14159f / 2.0f);
+
             sf::RectangleShape darkOverlay(sf::Vector2f(1280.0f, 720.0f));
-            darkOverlay.setFillColor(sf::Color(0, 0, 0, 200));
+            darkOverlay.setFillColor(sf::Color(0, 0, 0, static_cast<int>(200.0f * smoothT)));
             mWindow.draw(darkOverlay);
 
-            // Кубок и надпись
+            mWindow.draw(mLightBeam1);
+            mWindow.draw(mLightBeam2);
+
             mWindow.draw(mCupSprite);
             mWindow.draw(mCongratsText);
 
-            // Кнопки
             mWindow.draw(mVictoryQuitBtnSprite);
             mWindow.draw(mVictoryQuitBtnText);
             mWindow.draw(mVictoryContBtnSprite);
             mWindow.draw(mVictoryContBtnText);
         }
-        // --------------------------------
     }
 
     mWindow.display();

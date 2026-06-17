@@ -128,8 +128,13 @@ private:
     float mGameOverTimer;
     sf::Text mGameOverText;
 
-    // --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ЭКРАНА ПОБЕДЫ ---
+    // --- ПЕРЕМЕННЫЕ ДЛЯ ЭКРАНА ПОБЕДЫ И АНИМАЦИИ ---
     bool mIsVictoryScreenActive;
+    float mVictoryAnimTimer; // Таймер анимации выезда
+
+    sf::ConvexShape mLightBeam1; // Левый прожектор
+    sf::ConvexShape mLightBeam2; // Правый прожектор
+
     sf::Texture mCupTexture;
     sf::Sprite  mCupSprite;
     sf::Text    mCongratsText;
@@ -137,5 +142,5 @@ private:
     sf::Text    mVictoryQuitBtnText;
     sf::Sprite  mVictoryContBtnSprite;
     sf::Text    mVictoryContBtnText;
-    // ------------------------------------------
+    // -----------------------------------------------
 };

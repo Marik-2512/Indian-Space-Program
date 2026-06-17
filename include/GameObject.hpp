@@ -180,7 +180,8 @@ enum class BossState { MOVING, HOVERING, DASHING };
 class Boss : public Target {
 public:
     Boss() : Target(1000) {
-        mMaxHp = 5.25f;
+        // ХП Босса ровно на 10 идеальных ударов 3-м двигателем (10 * 0.75 = 7.5)
+        mMaxHp = 7.5f;
         mHp = mMaxHp;
         mIsEnraged = false;
 
@@ -244,7 +245,7 @@ public:
 
         // --- ПРОВЕРКА ЩИТА ---
         if (isShieldActive()) {
-            return HitResult::SHIELDED; // Теперь возвращает SHIELDED для отскока
+            return HitResult::SHIELDED;
         }
 
         mFlashTimer = 0.4f;
@@ -409,7 +410,7 @@ private:
     float mMaxHp;
     float mHp;
     float mFlashTimer = 0.0f;
-    float mHealFlashTimer = 0.0f; // Таймер зеленого свечения
+    float mHealFlashTimer = 0.0f;
     bool mIsEnraged;
 
     BossState mState;
