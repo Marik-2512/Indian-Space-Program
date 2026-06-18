@@ -5,8 +5,10 @@
 #include <cmath> 
 
 // ==========================================
-// --- ¬—œŒÃŒ√¿“≈À‹Õ€≈ Ã≈“Œƒ€ (–≈‘¿ “Œ–»Õ√) ---
+// --- METODY POMOCNICZE (REFAKTORYZACJA) ---
 // ==========================================
+
+// Uniwersalna inicjalizacja przycisk√≥w interfejsu u≈ºytkownika
 void Game::initButton(sf::Sprite& sprite, sf::Text& text, const std::string& str, float posX, float posY, float scale, int fontSize) {
     sprite.setTexture(mBuyKeyTexture);
     sprite.setOrigin(static_cast<float>(mBuyKeyTexture.getSize().x) / 2.0f, static_cast<float>(mBuyKeyTexture.getSize().y) / 2.0f);
@@ -22,6 +24,7 @@ void Game::initButton(sf::Sprite& sprite, sf::Text& text, const std::string& str
     text.setPosition(posX, posY - 4.0f);
 }
 
+// Uniwersalna inicjalizacja pask√≥w postƒôpu (HUD)
 void Game::initProgressBar(sf::RectangleShape& bg, sf::RectangleShape& bar, sf::Text& text, const std::string& str, sf::Color color, float posY) {
     bg.setSize(sf::Vector2f(200.0f, 20.0f));
     bg.setFillColor(sf::Color(50, 50, 50, 200));
@@ -42,6 +45,7 @@ void Game::initProgressBar(sf::RectangleShape& bg, sf::RectangleShape& bar, sf::
     text.setString(str);
 }
 
+// Pe≈Çne resetowanie stanu gry i powr√≥t do warto≈õci poczƒÖtkowych
 void Game::resetGameProgress() {
     mCoins = 0;
     mCurrentUpgradeLevel = 0;
@@ -66,6 +70,7 @@ void Game::resetGameProgress() {
     mCurrentState = GameState::MENU;
     std::cout << "[Game] Progress Reset to ZERO!" << std::endl;
 }
+
 // ==========================================
 
 Game::Game()
@@ -94,17 +99,17 @@ Game::Game()
     srand(static_cast<unsigned int>(time(0)));
     mWindow.setFramerateLimit(60);
 
-    // --- 1. «¿√–”« ¿ ¡¿«Œ¬€’ ¿——≈“Œ¬ ---
+    // ≈Åadowanie podstawowych zasob√≥w graficznych i czcionek
     if (!mFont.loadFromFile("VT323-Regular.ttf")) std::cout << "[Error] Font missing!" << std::endl;
     if (!mBuyKeyTexture.loadFromFile("buykey.png")) std::cout << "[Error] buykey.png missing!" << std::endl;
 
-    // --- 2. Õ¿—“–Œ… ¿  ÕŒœŒ  » ÿ ¿À ◊≈–≈« ”Õ»¬≈–—¿À‹Õ€≈ ‘”Õ ÷»» ---
-    float btnCenterX = 640.0f; // »—œ–¿¬À≈ÕŒ: “ÂÔÂ¸ ˆÂÌÚ ÍÌÓÔÓÍ Ó‚ÌÓ ÔÓÒÂÂ‰ËÌÂ ˝Í‡Ì‡
+    // Konfiguracja element√≥w interfejsu (Menu, HUD, Ekrany Ko≈Ñcowe)
+    float btnCenterX = 640.0f;
     initButton(mWorkshopBtnSprite, mWorkshopBtnText, "Workshop", btnCenterX, 260.0f);
     initButton(mStreetBtnSprite, mStreetBtnText, "Street", btnCenterX, 360.0f);
     initButton(mInstBtnSprite, mInstBtnText, "Instructions", btnCenterX, 460.0f);
     initButton(mResetBtnSprite, mResetBtnText, "RESET", btnCenterX, 560.0f);
-    mResetBtnText.setFillColor(sf::Color(255, 100, 100)); //  ‡ÒÌ˚È ˆ‚ÂÚ ‰Îˇ Ò·ÓÒ‡
+    mResetBtnText.setFillColor(sf::Color(255, 100, 100));
 
     initButton(mVictoryQuitBtnSprite, mVictoryQuitBtnText, "Quit", 460.0f, 620.0f, 1.2f, 38);
     initButton(mVictoryContBtnSprite, mVictoryContBtnText, "Continue", 820.0f, 620.0f, 1.2f, 38);
@@ -112,7 +117,6 @@ Game::Game()
     initProgressBar(mCowProgressBarBg, mCowProgressBar, mCowProgressText, "COWS HIT:", sf::Color(255, 50, 50), 35.0f);
     initProgressBar(mBossProgressBarBg, mBossProgressBar, mBossProgressText, "DRONES KILLED:", sf::Color(255, 150, 0), 92.0f);
 
-    // --- 3. Õ¿—“–Œ… ¿ “≈ —“Œ¬ » ¬»«”¿À‹Õ€’ ›À≈Ã≈Õ“Œ¬ ---
     mGameOverText.setFont(mFont);
     mGameOverText.setCharacterSize(130);
     mGameOverText.setStyle(sf::Text::Bold);
@@ -136,6 +140,7 @@ Game::Game()
     mRedFlashRect.setSize(sf::Vector2f(1280.0f, 720.0f));
     mRedFlashRect.setFillColor(sf::Color(255, 0, 0, 0));
 
+    // Konfiguracja efekt√≥w wizualnych dla ekranu zwyciƒôstwa
     mLightBeam1.setPointCount(4);
     mLightBeam1.setPoint(0, sf::Vector2f(-180.0f, -1200.0f));
     mLightBeam1.setPoint(1, sf::Vector2f(180.0f, -1200.0f));
@@ -185,6 +190,7 @@ Game::Game()
         mBackgroundSprite.setScale(1280.0f / mBackgroundTexture.getSize().x, 720.0f / mBackgroundTexture.getSize().y);
     }
 
+    // Konfiguracja sprajtu postaci z arkusza tekstur (spritesheet)
     if (mCharacterTexture.loadFromFile("character_sheet.png")) {
         mCharacterSprite.setTexture(mCharacterTexture);
         mCharacterFrames = { sf::IntRect(16, 0, 171, 600), sf::IntRect(209, 0, 191, 600),
@@ -208,7 +214,7 @@ Game::Game()
         mBoardSprite.setTexture(mBoardTexture);
         mBoardSprite.setOrigin(mBoardTexture.getSize().x / 2.0f, mBoardTexture.getSize().y / 2.0f);
         mBoardSprite.setPosition(640.0f, 350.0f);
-        mBoardSprite.setScale(0.42f, 0.35f); // »—œ–¿¬À≈ÕŒ: ¬ÂÌÛÎË Ô‡‚ËÎ¸Ì˚È ‡ÁÏÂ ‰Îˇ Á‡‰ÌÂ„Ó ÙÓÌ‡
+        mBoardSprite.setScale(0.42f, 0.35f);
     }
 
     if (mInstBgTexture.loadFromFile("instbg.png")) {
@@ -224,6 +230,7 @@ Game::Game()
         mInstExitBtnSprite.setScale(exitScale, exitScale);
     }
 
+    // ≈Åadowanie zasob√≥w podglƒÖdu przedmiot√≥w w sklepie
     for (int i = 0; i < 3; ++i) {
         if (mPreviewEngineTextures[i].loadFromFile("engine" + std::to_string(i + 1) + ".png")) {
             mPreviewEngineSprites[i].setTexture(mPreviewEngineTextures[i]);
@@ -263,17 +270,19 @@ Game::Game()
     mMenuTitleText.setOutlineThickness(4.0f);
     mMenuTitleText.setString("TIRE LAUNCHER");
     mMenuTitleText.setOrigin(mMenuTitleText.getLocalBounds().width / 2.0f, mMenuTitleText.getLocalBounds().height / 2.0f);
-    mMenuTitleText.setPosition(640.0f, 100.0f); // »—œ–¿¬À≈ÕŒ: ¬˚‡‚ÌˇÎ Á‡„ÓÎÓ‚ÓÍ Ó‚ÌÓ ÔÓ ˆÂÌÚÛ
+    mMenuTitleText.setPosition(640.0f, 100.0f);
 
     loadProgress();
     applyUpgrades();
 
+    // Inicjalizacja puli przeciwnik√≥w na ekranie gry
     for (int i = 0; i < 5; ++i) {
         mTargets.push_back(nullptr);
         spawnTarget(i);
     }
 }
 
+// Losowanie typu, pozycji oraz prƒôdko≈õci przeciwnika (Ptak, Dron lub Krowa)
 void Game::spawnTarget(int index) {
     float randomY;
     int chance = rand() % 100;
@@ -304,6 +313,7 @@ void Game::spawnTarget(int index) {
     }
 }
 
+// Aktualizacja parametr√≥w fizycznych opony i tekstur po zakupie ulepszenia
 void Game::applyUpgrades() {
     float enginePwr = mUpgrades[mCurrentUpgradeLevel].getSpeedBonus();
     float tireDrg = mUpgrades[mCurrentUpgradeLevel].getAeroBonus();
@@ -341,6 +351,7 @@ void Game::run() {
     }
 }
 
+// G≈Ç√≥wna pƒôtla obs≈Çugi zdarze≈Ñ (sterowanie, klikniƒôcia w menu i sklepie)
 void Game::processEvents() {
     sf::Event event;
     while (mWindow.pollEvent(event)) {
@@ -348,6 +359,7 @@ void Game::processEvents() {
 
         if (mIsGameOverActive) continue;
 
+        // Obs≈Çuga interakcji na ekranie zwyciƒôstwa
         if (mIsVictoryScreenActive) {
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                 sf::Vector2i pixelPos = sf::Mouse::getPosition(mWindow);
@@ -364,6 +376,7 @@ void Game::processEvents() {
             continue;
         }
 
+        // Zmiana stan√≥w gry za pomocƒÖ klawiszy numerycznych
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::Num1) mCurrentState = GameState::MENU;
             if (event.key.code == sf::Keyboard::Num2) mCurrentState = GameState::SHOP;
@@ -373,6 +386,7 @@ void Game::processEvents() {
             }
         }
 
+        // Logika mechaniki QTE (wyb√≥r si≈Çy i kƒÖta wystrza≈Çu opony)
         if (event.type == sf::Event::KeyReleased) {
             if (event.key.code == sf::Keyboard::Space && mCurrentState == GameState::PLAY) {
                 if (!mRocket.isFlying()) {
@@ -391,6 +405,7 @@ void Game::processEvents() {
 
                             float finalPwr = mQteManager.getFinalPowerMult();
 
+                            // Przyznawanie bonusowych monet za idealny timing w sekwencji QTE
                             if (finalPwr == 1.0f) {
                                 mCoins += 10;
                                 std::cout << "[Game] Perfect Timing! +10 Coins" << std::endl;
@@ -407,6 +422,7 @@ void Game::processEvents() {
             }
         }
 
+        // Obs≈Çuga klikniƒôƒá myszkƒÖ w Menu G≈Ç√≥wnym i Sklepie (wyb√≥r / zakup ulepsze≈Ñ)
         if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
             sf::Vector2i pixelPos = sf::Mouse::getPosition(mWindow);
             sf::Vector2f mousePos = mWindow.mapPixelToCoords(pixelPos);
@@ -466,11 +482,13 @@ void Game::processEvents() {
     }
 }
 
+// G≈Ç√≥wna logika aktualizacji stanu gry (fizyka, kolizje, animacje)
 void Game::update(sf::Time deltaTime) {
     if (mCurrentState != GameState::PLAY) return;
 
     float dt = deltaTime.asSeconds();
 
+    // Animacja przej≈õcia i efekt√≥w ≈õwietlnych dla ekranu zwyciƒôstwa
     if (mIsVictoryScreenActive) {
         mVictoryAnimTimer += dt;
 
@@ -501,6 +519,7 @@ void Game::update(sf::Time deltaTime) {
 
     sf::Time scaledTime = sf::seconds(dt);
 
+    // Sekwencja ko≈Ñca gry (efekt przyciemnienia i pulsowanie tekstu)
     if (mIsGameOverActive) {
         mGameOverTimer -= dt;
 
@@ -525,12 +544,14 @@ void Game::update(sf::Time deltaTime) {
 
     mScoreText.setString("COINS: " + std::to_string(mCoins));
 
+    // Warunek aktywacji i przygotowania walki z Bossem
     if (mMobsKilled >= mMobsForBoss && !mIsBossActive && !mIsBossWarningActive && mCoins >= 50) {
         mIsBossWarningActive = true;
         mBossWarningTimer = 3.0f;
         mMobsKilled = 0;
     }
 
+    // Obs≈Çuga ostrze≈ºenia przed pojawieniem siƒô Bossa (czerwony b≈Çysk)
     if (mIsBossWarningActive) {
         mBossWarningTimer -= deltaTime.asSeconds();
 
@@ -547,6 +568,7 @@ void Game::update(sf::Time deltaTime) {
         }
     }
 
+    // Aktualizacja pask√≥w postƒôpu cel√≥w i uderze≈Ñ kr√≥w
     float pct = static_cast<float>(mMobsKilled) / mMobsForBoss;
     if (pct > 1.0f) pct = 1.0f;
     mBossProgressBar.setSize(sf::Vector2f(200.0f * pct, 20.0f));
@@ -557,6 +579,7 @@ void Game::update(sf::Time deltaTime) {
     mCowProgressBar.setSize(sf::Vector2f(200.0f * cowPct, 20.0f));
     mCowProgressText.setString("COWS HIT: " + std::to_string(mCowsHit) + "/" + std::to_string(mCowsForGameOver));
 
+    // Obs≈Çuga klatek animacji ≈õwiƒôtowania postaci po udanym trafieniu
     if (!mCharacterFrames.empty()) {
         if (mIsCelebrating) {
             if (mAnimationClock.getElapsedTime().asSeconds() > mFrameDuration) {
@@ -578,6 +601,7 @@ void Game::update(sf::Time deltaTime) {
         }
     }
 
+    // Aktualizacja pozycji przeciwnik√≥w i respawn po wylocie za ekran
     for (size_t i = 0; i < mTargets.size(); ++i) {
         if (!mTargets[i]->isActive()) continue;
 
@@ -597,6 +621,7 @@ void Game::update(sf::Time deltaTime) {
 
     mRocket.update(dt);
 
+    // Logika lotu opony oraz sprawdzanie kolizji z obiektami gry
     if (mRocket.isFlying()) {
         sf::Vector2f startPos(290.0f, 550.0f);
         if (mCurrentUpgradeLevel == 1) startPos = sf::Vector2f(340.0f, 510.0f);
@@ -610,12 +635,13 @@ void Game::update(sf::Time deltaTime) {
         float currentQTEBonus = mRocket.getLastPowerMult();
         mTireVisual.rotate(360.0f * currentEngineBonus * currentQTEBonus * dt);
 
+        // Skalowanie hitboxa opony dla dok≈Çadniejszego wykrywania kolizji
         sf::FloatRect tireBox = mTireVisual.getGlobalBounds();
-
         float shrinkX = tireBox.width * 0.3f;
         float shrinkY = tireBox.height * 0.3f;
         sf::FloatRect smallTireBox(tireBox.left + shrinkX, tireBox.top + shrinkY, tireBox.width - shrinkX * 2.0f, tireBox.height - shrinkY * 2.0f);
 
+        // Iteracja po celach i przetwarzanie rezultat√≥w trafie≈Ñ (obra≈ºenia, ≈õmierƒá, leczenie Bossa)
         for (size_t i = 0; i < mTargets.size(); ++i) {
             if (mTargets[i]->isActive() && smallTireBox.intersects(mTargets[i]->getBounds())) {
 
@@ -650,6 +676,7 @@ void Game::update(sf::Time deltaTime) {
                             mMobsKilled++;
                         }
 
+                        // Specjalna logika dla trafienia krowy (leczenie bossa lub wywo≈Çanie Game Over)
                         if (dynamic_cast<Cow*>(mTargets[i].get())) {
                             mCowsHit++;
 
@@ -685,11 +712,13 @@ void Game::update(sf::Time deltaTime) {
         }
     }
 
+    // Automatyczny zapis postƒôpu w momencie wylƒÖdowania opony
     bool currentlyFlying = mRocket.isFlying();
     if (mWasFlying && !currentlyFlying) saveProgress();
     mWasFlying = currentlyFlying;
 }
 
+// Renderowanie ca≈Çej sceny w zale≈ºno≈õci od aktualnego stanu maszyny stan√≥w gry
 void Game::render() {
     sf::Color bgColor;
     switch (mCurrentState) {
@@ -701,6 +730,7 @@ void Game::render() {
     }
     mWindow.clear(bgColor);
 
+    // RENDEROWANIE: Menu G≈Ç√≥wne
     if (mCurrentState == GameState::MENU) {
         mWindow.draw(mMenuBgSprite);
         mWindow.draw(mMenuTitleText);
@@ -714,6 +744,7 @@ void Game::render() {
         mWindow.draw(mResetBtnSprite);
         mWindow.draw(mResetBtnText);
     }
+    // RENDEROWANIE: Ekran Instrukcji
     else if (mCurrentState == GameState::INSTRUCTIONS) {
         mWindow.draw(mInstBgSprite);
         mWindow.draw(mInstExitBtnSprite);
@@ -728,6 +759,7 @@ void Game::render() {
         tipText.setString("Press [1] or Click Exit Button to return to Main Menu");
         mWindow.draw(tipText);
     }
+    // RENDEROWANIE: Warsztat / Sklep z ulepszeniami
     else if (mCurrentState == GameState::SHOP) {
         mWindow.draw(mShopBgSprite);
         mWindow.draw(mBoardSprite);
@@ -831,6 +863,7 @@ void Game::render() {
         tipText.setString("Press [3] to go out to the Street");
         mWindow.draw(tipText);
     }
+    // RENDEROWANIE: G≈Ç√≥wny stan rozgrywki (Ulica / Poziom gry)
     else if (mCurrentState == GameState::PLAY) {
         mWindow.draw(mBackgroundSprite);
         mWindow.draw(mCharacterSprite);
@@ -852,6 +885,7 @@ void Game::render() {
         if (mCurrentUpgradeLevel == 1) startPos = sf::Vector2f(340.0f, 510.0f);
         else if (mCurrentUpgradeLevel == 2) startPos = sf::Vector2f(305.0f, 575.0f);
 
+        // Dynamiczne rysowanie punkt√≥w przewidywanej trajektorii opony
         if (mRocket.isFlying() || mQteManager.getState() == QTEState::ANGLE_SELECT) {
             float pwr = mRocket.isFlying() ? mRocket.getLastPowerMult() : mQteManager.getFinalPowerMult();
             float ang = mRocket.isFlying() ? mRocket.getLastAngle() : mQteManager.getAngle();
@@ -882,6 +916,7 @@ void Game::render() {
             mWindow.draw(mTireVisual);
         }
 
+        // Rysowanie graficznego interfejsu skali QTE (strefy zielona/≈º√≥≈Çta/czerwona)
         if (mQteManager.isActive()) {
             float barW = 400.0f;
             float barH = 30.0f;
@@ -915,6 +950,7 @@ void Game::render() {
             mWindow.draw(cursor);
         }
 
+        // Dynamiczne ≈Çadowanie i wy≈õwietlanie licznika monet na HUD w trakcie gry
         static sf::Texture playCoinTexture;
         static bool isPlayCoinLoaded = false;
         if (!isPlayCoinLoaded) {
@@ -961,6 +997,7 @@ void Game::render() {
             mWindow.draw(mGameOverText);
         }
 
+        // Efekty specjalne nak≈Çadane na ekran w przypadku pokonania bossa (zwyciƒôstwo)
         if (mIsVictoryScreenActive) {
             float t = mVictoryAnimTimer / 1.5f;
             if (t > 1.0f) t = 1.0f;
@@ -986,6 +1023,7 @@ void Game::render() {
     mWindow.display();
 }
 
+// Zapis aktualnych postƒôp√≥w gracza (monety, ulepszenia) do pliku tekstowego
 void Game::saveProgress() {
     std::ofstream file("save.txt");
     if (file.is_open()) {
@@ -998,6 +1036,7 @@ void Game::saveProgress() {
     }
 }
 
+// Odczyt zapisanych stan√≥w gry z pliku tekstowego na starcie aplikacji
 void Game::loadProgress() {
     std::ifstream file("save.txt");
     if (file.is_open()) {
