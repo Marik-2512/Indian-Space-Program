@@ -4,9 +4,10 @@
 #include <vector>
 #include <cstdlib>
 
-// --- ДОБАВИЛ SHIELDED ДЛЯ ОТСКОКА ОТ ЩИТА ---
+// Wynik trafienia określający zachowanie pocisku po kolizji
 enum class HitResult { KILLED, DAMAGED, IGNORED, SHIELDED };
 
+// Base class reprezentująca podstawowy obiekt gry
 class GameObject {
 public:
     virtual ~GameObject() = default;
@@ -17,6 +18,7 @@ public:
     virtual sf::Vector2f getPosition() const = 0;
 };
 
+// Klasa bazowa dla wszystkich celów i przeciwników
 class Target : public GameObject {
 public:
     Target(int reward) : coinReward(reward), active(true), speed(0.0f), position(0, 0) {}
@@ -35,7 +37,7 @@ public:
         return HitResult::KILLED;
     }
 
-    // --- НОВЫЙ МЕТОД ДЛЯ ЛЕЧЕНИЯ ---
+    // Wirtualna metoda obsługująca leczenie jednostek
     virtual void heal(float amount) {}
 
     virtual bool isBoss() const { return false; }
@@ -48,6 +50,7 @@ protected:
     sf::Vector2f position;
 };
 
+// Klasa przeciwnika: Ptak
 class Bird : public Target {
 public:
     Bird() : Target(50) {
@@ -92,6 +95,7 @@ private:
     std::vector<sf::IntRect> frames; int mCurrentFrame = 0; float mElapsedTime = 0.0f;
 };
 
+// Klasa przeciwnika: Dron
 class Drone : public Target {
 public:
     Drone() : Target(150) {
@@ -134,6 +138,7 @@ private:
     std::vector<sf::IntRect> frames; int mCurrentFrame = 0; float mElapsedTime = 0.0f;
 };
 
+// Klasa przeszkody: Krowa (odjęcie punktów przy trafieniu)
 class Cow : public Target {
 public:
     Cow() : Target(-150) {
@@ -172,16 +177,14 @@ private:
     std::vector<sf::IntRect> frames; int mCurrentFrame = 0; float mElapsedTime = 0.0f;
 };
 
-// ==========================================
-// --- БОСС ---
-// ==========================================
+// Stany zachowania sztucznej inteligencji Bossa
 enum class BossState { MOVING, HOVERING, DASHING };
 
+// Klasa finałowego przeciwnika (Boss)
 class Boss : public Target {
 public:
     Boss() : Target(1000) {
-        // ХП Босса ровно на 10 идеальных ударов 3-м двигателем (10 * 0.75 = 7.5)
-        mMaxHp = 7.5f;
+        mMaxHp = 5.25f;
         mHp = mMaxHp;
         mIsEnraged = false;
 
@@ -223,27 +226,27 @@ public:
 
     bool isBoss() const override { return true; }
 
+    // Weryfikacja, czy Boss posiada włączone pole ochronne (tarcza)
     bool isShieldActive() const {
         return (mState == BossState::HOVERING && mTextureChangedInHover);
     }
 
-    // --- ЛОГИКА ОТХИЛА БОССА ---
+    // Przywracanie punktów zdrowia z ograniczeniem do wartości maksymalnej
     void heal(float amount) override {
         if (!active) return;
         mHp += amount;
         if (mHp > mMaxHp) {
-            mHp = mMaxHp; // Не лечим выше максимального здоровья
+            mHp = mMaxHp;
         }
-        mHealFlashTimer = 0.5f; // Таймер зеленой вспышки (0.5 сек)
+        mHealFlashTimer = 0.5f; // Czas trwania zielonego błysku sygnalizującego leczenie
     }
 
+    // Przetwarzanie otrzymywanych obrażeń i sprawdzanie niewrażliwości
     HitResult takeDamage(float damage) override {
-        // Если босс мигает от урона ИЛИ от лечения - он неуязвим
         if (mFlashTimer > 0.0f || mHealFlashTimer > 0.0f) {
             return HitResult::IGNORED;
         }
 
-        // --- ПРОВЕРКА ЩИТА ---
         if (isShieldActive()) {
             return HitResult::SHIELDED;
         }
@@ -251,6 +254,7 @@ public:
         mFlashTimer = 0.4f;
         mHp -= damage;
 
+        // Aktywacja trybu gniewu (Enrage) po spadku zdrowia poniżej 50%
         if (mHp <= mMaxHp * 0.5f && !mIsEnraged) {
             mIsEnraged = true;
             speedY *= 1.5f;
@@ -346,14 +350,14 @@ public:
             mSprite.setOrigin(size.x / 2.0f, size.y / 2.0f);
         }
 
-        // --- ЦВЕТА И ЭФФЕКТЫ ---
+        // Zarządzanie efektami graficznymi (zmiana koloru przy trafieniu lub leczeniu)
         if (mFlashTimer > 0.0f) {
             mFlashTimer -= dt;
-            mSprite.setColor(sf::Color(255, 100, 100)); // Красная вспышка урона
+            mSprite.setColor(sf::Color(255, 100, 100));
         }
         else if (mHealFlashTimer > 0.0f) {
             mHealFlashTimer -= dt;
-            mSprite.setColor(sf::Color(100, 255, 100)); // Зеленая вспышка отхила
+            mSprite.setColor(sf::Color(100, 255, 100));
         }
         else {
             if (mIsEnraged) mSprite.setColor(sf::Color(255, 200, 200));
